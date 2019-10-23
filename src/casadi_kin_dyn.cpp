@@ -8,7 +8,7 @@
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/contact-dynamics.hpp>
-#include <pinocchio/algorithm/centroidal.hxx>
+#include <pinocchio/algorithm/centroidal.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -56,6 +56,8 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
     _qdot = casadi::SX::sym("v", _model_dbl.nv);
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
     _tau = casadi::SX::sym("tau", _model_dbl.nv);
+
+    _model_dbl.gravity.setZero();
 }
 
 int CasadiKinDyn::Impl::nq() const
@@ -96,13 +98,16 @@ std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
 
     pinocchio::computeCentroidalDynamics(model, data,
                                          cas_to_eig(_q),
-                                         cas_to_eig(_qdot));
+                                         cas_to_eig(_qdot),
+                                         cas_to_eig(_qddot));
 
     auto h_lin = eig_to_cas(data.hg.linear());
     auto h_ang = eig_to_cas(data.hg.angular());
+    auto dh_lin = eig_to_cas(data.dhg.linear());
+    auto dh_ang = eig_to_cas(data.dhg.angular());
     casadi::Function CD("computeCentroidalDynamics",
-    {_q, _qdot}, {h_lin, h_ang},
-    {"q", "v"}, {"h_lin", "h_ang"});
+    {_q, _qdot, _qddot}, {h_lin, h_ang, dh_lin, dh_ang},
+    {"q", "v", "a"}, {"h_lin", "h_ang", "dh_lin", "dh_ang"});
 
     std::stringstream ss;
     ss << CD.serialize();
@@ -212,6 +217,11 @@ int CasadiKinDyn::nv() const
 std::string CasadiKinDyn::rnea()
 {
     return impl().rnea();
+}
+
+std::string CasadiKinDyn::computeCentroidalDynamics()
+{
+    return impl().computeCentroidalDynamics();
 }
 
 std::string CasadiKinDyn::fk(std::string link_name)
