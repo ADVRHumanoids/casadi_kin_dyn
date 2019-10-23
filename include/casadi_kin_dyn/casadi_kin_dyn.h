@@ -17,6 +17,8 @@ public:
     int nv() const;
 
     std::string rnea();
+    
+    std::string computeCentroidalDynamics();
 
     std::string fk(std::string link_name);
 

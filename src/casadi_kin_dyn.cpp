@@ -8,6 +8,7 @@
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/contact-dynamics.hpp>
+#include <pinocchio/algorithm/centroidal.hxx>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -25,6 +26,8 @@ public:
     int nv() const;
 
     std::string rnea();
+    
+    std::string computeCentroidalDynamics();
 
     std::string fk(std::string link_name);
 
@@ -85,6 +88,28 @@ std::string CasadiKinDyn::Impl::rnea()
 
     return ss.str();
 }
+
+std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    pinocchio::computeCentroidalDynamics(model, data,
+                                         cas_to_eig(_q),
+                                         cas_to_eig(_qdot));
+
+    auto h_lin = eig_to_cas(data.hg.linear());
+    auto h_ang = eig_to_cas(data.hg.angular());
+    casadi::Function CD("computeCentroidalDynamics",
+    {_q, _qdot}, {h_lin, h_ang},
+    {"q", "v"}, {"h_lin", "h_ang"});
+
+    std::stringstream ss;
+    ss << CD.serialize();
+
+    return ss.str();
+}
+
 
 std::string CasadiKinDyn::Impl::fk(std::string link_name)
 {
