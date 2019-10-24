@@ -20,6 +20,8 @@ public:
     
     std::string computeCentroidalDynamics();
 
+    std::string ccrba();
+
     std::string fk(std::string link_name);
 
     std::string jacobian(std::string link_name);

@@ -29,6 +29,8 @@ public:
     
     std::string computeCentroidalDynamics();
 
+    std::string ccrba();
+
     std::string fk(std::string link_name);
 
     std::string jacobian(std::string link_name);
@@ -112,6 +114,25 @@ std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
     ss << CD.serialize();
 
     return ss.str();
+}
+
+std::string CasadiKinDyn::Impl::ccrba()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto Ah = pinocchio::ccrba(model, data, cas_to_eig(_q), cas_to_eig(casadi::SX::zeros(nv())));
+    auto Ah_cas = eigmat_to_cas(Ah);
+
+    casadi::Function FK("ccrba",
+    {_q}, {Ah_cas},
+    {"q"}, {"A"});
+
+    std::stringstream ss;
+    ss << FK.serialize();
+
+    return ss.str();
+
 }
 
 
@@ -221,6 +242,11 @@ std::string CasadiKinDyn::rnea()
 std::string CasadiKinDyn::computeCentroidalDynamics()
 {
     return impl().computeCentroidalDynamics();
+}
+
+std::string CasadiKinDyn::ccrba()
+{
+    return impl().ccrba();
 }
 
 std::string CasadiKinDyn::fk(std::string link_name)

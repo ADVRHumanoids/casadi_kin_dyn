@@ -12,6 +12,7 @@ PYBIND11_MODULE(pycasadi_kin_dyn, m) {
             .def("nq", &CasadiKinDyn::nq)
             .def("nv", &CasadiKinDyn::nv)
             .def("rnea", &CasadiKinDyn::rnea)
+            .def("ccrba", &CasadiKinDyn::ccrba)
             .def("computeCentroidalDynamics", &CasadiKinDyn::computeCentroidalDynamics)
             .def("fk", &CasadiKinDyn::fk)
             .def("jacobian", &CasadiKinDyn::jacobian)
