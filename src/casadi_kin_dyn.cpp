@@ -57,7 +57,6 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
     _tau = casadi::SX::sym("tau", _model_dbl.nv);
 
-    _model_dbl.gravity.setZero();
 }
 
 int CasadiKinDyn::Impl::nq() const
