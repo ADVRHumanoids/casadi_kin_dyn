@@ -23,6 +23,8 @@ public:
     std::string ccrba();
 
     std::string fk(std::string link_name);
+    
+    std::string centerOfMass();
 
     std::string jacobian(std::string link_name);
 

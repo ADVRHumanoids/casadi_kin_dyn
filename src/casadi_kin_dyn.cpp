@@ -32,6 +32,8 @@ public:
     std::string ccrba();
 
     std::string fk(std::string link_name);
+    
+    std::string centerOfMass();
 
     std::string jacobian(std::string link_name);
 
@@ -159,6 +161,33 @@ std::string CasadiKinDyn::Impl::fk(std::string link_name)
     return ss.str();
 }
 
+
+std::string CasadiKinDyn::Impl::centerOfMass()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    pinocchio::centerOfMass(model, data,
+                            cas_to_eig(_q),
+                            cas_to_eig(_qdot),
+                            cas_to_eig(_qddot));
+
+    auto com = eig_to_cas(data.com[0]);
+    auto vcom = eig_to_cas(data.vcom[0]);
+    auto acom = eig_to_cas(data.acom[0]);
+    casadi::Function CoM("centerOfMass",
+    {_q, _qdot, _qddot}, {com, vcom, acom},
+    {"q", "v", "a"}, {"com", "vcom", "acom"});
+
+    std::stringstream ss;
+    ss << CoM.serialize();
+
+    return ss.str();
+    
+}
+
+
+
 std::string CasadiKinDyn::Impl::jacobian(std::string link_name)
 {
     auto model = _model_dbl.cast<Scalar>();
@@ -252,6 +281,11 @@ std::string CasadiKinDyn::ccrba()
 std::string CasadiKinDyn::fk(std::string link_name)
 {
     return impl().fk(link_name);
+}
+
+std::string CasadiKinDyn::centerOfMass()
+{
+    return impl().centerOfMass();
 }
 
 std::string CasadiKinDyn::jacobian(std::string link_name)

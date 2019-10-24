@@ -15,6 +15,7 @@ PYBIND11_MODULE(pycasadi_kin_dyn, m) {
             .def("ccrba", &CasadiKinDyn::ccrba)
             .def("computeCentroidalDynamics", &CasadiKinDyn::computeCentroidalDynamics)
             .def("fk", &CasadiKinDyn::fk)
+            .def("centerOfMass", &CasadiKinDyn::centerOfMass)
             .def("jacobian", &CasadiKinDyn::jacobian)
             ;
     
