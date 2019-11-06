@@ -22,6 +22,8 @@ public:
 
     std::string ccrba();
 
+    std::string crba();
+
     std::string fk(std::string link_name);
     
     std::string centerOfMass();

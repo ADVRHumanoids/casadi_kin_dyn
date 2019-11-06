@@ -9,6 +9,7 @@
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/contact-dynamics.hpp>
 #include <pinocchio/algorithm/centroidal.hpp>
+#include <pinocchio/algorithm/crba.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -36,6 +37,8 @@ public:
     std::string centerOfMass();
 
     std::string jacobian(std::string link_name);
+
+    std::string crba();
 
 private:
 
@@ -212,6 +215,22 @@ std::string CasadiKinDyn::Impl::jacobian(std::string link_name)
     return ss.str();
 }
 
+std::string CasadiKinDyn::Impl::crba()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto M = pinocchio::crba(model, data, cas_to_eig(_q));
+
+    auto Inertia = eigmat_to_cas(M);
+    casadi::Function INERTIA("crba", {_q}, {Inertia}, {"q"}, {"B"});
+
+    std::stringstream ss;
+    ss << INERTIA.serialize();
+
+    return ss.str();
+}
+
 CasadiKinDyn::Impl::VectorXs CasadiKinDyn::Impl::cas_to_eig(const casadi::SX & cas)
 {
     VectorXs eig(cas.size1());
@@ -276,6 +295,11 @@ std::string CasadiKinDyn::computeCentroidalDynamics()
 std::string CasadiKinDyn::ccrba()
 {
     return impl().ccrba();
+}
+
+std::string CasadiKinDyn::crba()
+{
+    return impl().crba();
 }
 
 std::string CasadiKinDyn::fk(std::string link_name)
