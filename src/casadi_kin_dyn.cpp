@@ -221,6 +221,7 @@ std::string CasadiKinDyn::Impl::crba()
     pinocchio::DataTpl<Scalar> data(model);
 
     auto M = pinocchio::crba(model, data, cas_to_eig(_q));
+    M.triangularView<Eigen::Lower>() = M.transpose();
 
     auto Inertia = eigmat_to_cas(M);
     casadi::Function INERTIA("crba", {_q}, {Inertia}, {"q"}, {"B"});
