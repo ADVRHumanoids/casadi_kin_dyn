@@ -18,6 +18,8 @@ PYBIND11_MODULE(pycasadi_kin_dyn, m) {
             .def("fk", &CasadiKinDyn::fk)
             .def("centerOfMass", &CasadiKinDyn::centerOfMass)
             .def("jacobian", &CasadiKinDyn::jacobian)
+            .def("frameVelocity", &CasadiKinDyn::frameVelocity)
+            .def("frameAcceleration", &CasadiKinDyn::frameAcceleration)
             ;
     
 }

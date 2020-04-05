@@ -30,6 +30,10 @@ public:
 
     std::string jacobian(std::string link_name);
 
+    std::string frameVelocity(std::string link_name);
+
+    std::string frameAcceleration(std::string link_name);
+
     ~CasadiKinDyn();
 
 private:

@@ -38,6 +38,10 @@ public:
 
     std::string jacobian(std::string link_name);
 
+    std::string frameVelocity(std::string link_name);
+
+    std::string frameAcceleration(std::string link_name);
+
     std::string crba();
 
 private:
@@ -140,6 +144,65 @@ std::string CasadiKinDyn::Impl::ccrba()
 
 }
 
+std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    pinocchio::forwardKinematics(model, data,
+                                 cas_to_eig(_q),
+                                 cas_to_eig(_qdot));
+
+    pinocchio::updateFramePlacements(model, data);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    auto vel = pinocchio::getFrameVelocity(model, data, frame_idx);
+    auto eig_vel_linear = vel.linear();
+    auto eig_vel_angular = vel.angular();
+    auto ee_vel_linear = eig_to_cas(eig_vel_linear);
+    auto ee_vel_angular = eig_to_cas(eig_vel_angular);
+
+    casadi::Function FRAME_VELOCITY("frame_velocity",
+    {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
+    {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
+
+    std::stringstream ss;
+    ss << FRAME_VELOCITY.serialize();
+
+    return ss.str();
+}
+
+std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    pinocchio::forwardKinematics(model, data,
+                                 cas_to_eig(_q),
+                                 cas_to_eig(_qdot),
+                                 cas_to_eig(_qddot));
+
+    pinocchio::updateFramePlacements(model, data);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    auto acc = pinocchio::getFrameAcceleration(model, data, frame_idx);
+    auto eig_acc_linear = acc.linear();
+    auto eig_acc_angular = acc.angular();
+    auto ee_acc_linear = eig_to_cas(eig_acc_linear);
+    auto ee_acc_angular = eig_to_cas(eig_acc_angular);
+
+    casadi::Function FRAME_ACCELERATION("frame_acceleration",
+    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
+    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
+
+
+    std::stringstream ss;
+    ss << FRAME_ACCELERATION.serialize();
+
+    return ss.str();
+}
 
 std::string CasadiKinDyn::Impl::fk(std::string link_name)
 {
@@ -149,14 +212,18 @@ std::string CasadiKinDyn::Impl::fk(std::string link_name)
     pinocchio::framesForwardKinematics(model, data,
                                        cas_to_eig(_q));
 
+
     auto frame_idx = model.getFrameId(link_name);
     auto eig_fk_pos = data.oMf.at(frame_idx).translation();
     auto eig_fk_rot = data.oMf.at(frame_idx).rotation();
     auto ee_position = eig_to_cas(eig_fk_pos);
     auto ee_rot = eigmat_to_cas(eig_fk_rot);
+
+
     casadi::Function FK("forward_kinematics",
     {_q}, {ee_position, ee_rot},
-    {"q"}, {"ee_pos", "ee_rot"});
+    {"q", "qdot", "qddot"}, {"ee_pos", "ee_rot"});
+
 
     std::stringstream ss;
     ss << FK.serialize();
