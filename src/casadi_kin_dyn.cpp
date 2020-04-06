@@ -216,13 +216,13 @@ std::string CasadiKinDyn::Impl::fk(std::string link_name)
     auto frame_idx = model.getFrameId(link_name);
     auto eig_fk_pos = data.oMf.at(frame_idx).translation();
     auto eig_fk_rot = data.oMf.at(frame_idx).rotation();
-    auto ee_position = eig_to_cas(eig_fk_pos);
+    auto ee_pos = eig_to_cas(eig_fk_pos);
     auto ee_rot = eigmat_to_cas(eig_fk_rot);
 
 
     casadi::Function FK("forward_kinematics",
-    {_q}, {ee_position, ee_rot},
-    {"q", "qdot", "qddot"}, {"ee_pos", "ee_rot"});
+    {_q}, {ee_pos, ee_rot},
+    {"q"}, {"ee_pos", "ee_rot"});
 
 
     std::stringstream ss;
