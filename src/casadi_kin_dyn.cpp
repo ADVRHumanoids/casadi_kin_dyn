@@ -375,6 +375,16 @@ std::string CasadiKinDyn::fk(std::string link_name)
     return impl().fk(link_name);
 }
 
+std::string CasadiKinDyn::frameVelocity(std::string link_name)
+{
+    return impl().frameVelocity(link_name);
+}
+
+std::string CasadiKinDyn::frameAcceleration(std::string link_name)
+{
+    return impl().frameAcceleration(link_name);
+}
+
 std::string CasadiKinDyn::centerOfMass()
 {
     return impl().centerOfMass();
