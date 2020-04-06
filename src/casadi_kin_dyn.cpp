@@ -152,19 +152,22 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
-    pinocchio::forwardKinematics(model, data,
-                                 cas_to_eig(_q),
-                                 cas_to_eig(_qdot));
-
-    pinocchio::updateFramePlacements(model, data);
-
     auto frame_idx = model.getFrameId(link_name);
 
-    auto vel = pinocchio::getFrameVelocity(model, data, frame_idx);
-    auto eig_vel_linear = vel.linear();
-    auto eig_vel_angular = vel.angular();
-    auto ee_vel_linear = eig_to_cas(eig_vel_linear);
-    auto ee_vel_angular = eig_to_cas(eig_vel_angular);
+    // Compute expression for forward kinematics with Pinocchio
+    Eigen::Matrix<Scalar, 6, -1> J;
+    J.setZero(6, nv());
+
+    pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
+    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
+
+
+    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*_qdot;
+
+
+    auto ee_vel_linear = eig_to_cas(eig_vel.head(3));
+    auto ee_vel_angular = eig_to_cas(eig_vel.tail(3));
 
     casadi::Function FRAME_VELOCITY("frame_velocity",
     {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
