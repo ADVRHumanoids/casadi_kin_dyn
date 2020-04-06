@@ -29,6 +29,8 @@ public:
     std::string centerOfMass();
 
     std::string jacobian(std::string link_name);
+    
+    std::string jacobian_time_variation(std::string link_name);
 
     std::string frameVelocity(std::string link_name);
 

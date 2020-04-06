@@ -10,6 +10,7 @@
 #include <pinocchio/algorithm/contact-dynamics.hpp>
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/crba.hpp>
+#include <pinocchio/algorithm/jacobian.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -37,6 +38,8 @@ public:
     std::string centerOfMass();
 
     std::string jacobian(std::string link_name);
+    
+    std::string jacobian_time_variation(std::string link_name);
 
     std::string frameVelocity(std::string link_name);
 
@@ -282,6 +285,31 @@ std::string CasadiKinDyn::Impl::jacobian(std::string link_name)
     return ss.str();
 }
 
+std::string CasadiKinDyn::Impl::jacobian_time_variation(std::string link_name)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    // Compute expression for forward kinematics with Pinocchio
+    Eigen::Matrix<Scalar, 6, -1> dJ;
+    dJ.setZero(6, nv());
+
+    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+//     TO DEBUG
+//     pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, dJ);
+
+    auto dJac = eigmat_to_cas(dJ);
+    casadi::Function JACOBIAN_TIME_VARIATION("jacobian_time_variation", {_q, _qdot}, {dJac}, {"q", "v"}, {"dJ"});
+
+    std::stringstream ss;
+    ss << JACOBIAN_TIME_VARIATION.serialize();
+
+    return ss.str();
+}
+
 std::string CasadiKinDyn::Impl::crba()
 {
     auto model = _model_dbl.cast<Scalar>();
@@ -393,6 +421,11 @@ std::string CasadiKinDyn::centerOfMass()
 std::string CasadiKinDyn::jacobian(std::string link_name)
 {
     return impl().jacobian(link_name);
+}
+
+std::string CasadiKinDyn::jacobian_time_variation(std::string link_name)
+{
+    return impl().jacobian_time_variation(link_name);
 }
 
 CasadiKinDyn::~CasadiKinDyn()
