@@ -163,7 +163,7 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
 
 
-    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*_qdot;
+    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*cas_to_eig(_qdot);
 
 
     auto ee_vel_linear = eig_to_cas(eig_vel.head(3));
