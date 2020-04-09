@@ -10,10 +10,9 @@ public:
 
     TestDerivatives()
     {
-//         std::ifstream ifs("/home/matteo/advr-superbuild/configs/ADVR_shared/iiwa7/urdf/kuka.urdf");
-        std::ifstream ifs("/home/matteo/advr-superbuild/external/Horizon/configs/urdf/roped_template.urdf");
-        std::string urdf_string( (std::istreambuf_iterator<char>(ifs) ),
-                             (std::istreambuf_iterator<char>()    ) );
+        std::ifstream ifs("/home/arturo/Code/advr-superbuild/external/Horizon/configs/urdf/roped_template.urdf");
+        std::string urdf_string((std::istreambuf_iterator<char>(ifs) ),
+                                (std::istreambuf_iterator<char>()    ) );
 
         auto urdf = urdf::parseURDF(urdf_string);
         _pin = new PinocchioWrapper(urdf);
@@ -100,6 +99,48 @@ TEST_F(TestDerivatives, checkJac)
 
     std::cout << "J:\n" << J << std::endl;
     std::cout << "Jhat:\n" << Jhat << std::endl;
+
+
+}
+
+TEST_F(TestDerivatives, checkQuaternion)
+{
+    std::string link_name = "Contact1";
+
+    Eigen::VectorXd q;
+    q.setRandom(_pin->nq());
+    q.segment(3,4) = q.segment(3,4).normalized();
+
+    Eigen::VectorXd v;
+    double h = 1e-5;
+    v.setZero(_pin->nv());
+    v.segment<3>(3).setRandom();
+    v.segment<3>(3).normalize();
+
+    auto q2 = _pin->integrate(q,  h*v/2);
+    auto q1 = _pin->integrate(q, -h*v/2);
+
+    Eigen::Vector4d quat_dot_hat = (q2 - q1).segment<4>(3)/h;
+
+    Eigen::Matrix3d S, eye;
+    S.setZero();
+    eye.setIdentity();
+
+    S(0, 1) = -q[5]  ;
+    S(0, 2) = q[4]   ;
+    S(1, 0) = q[5]   ;
+    S(1, 2) = -q[3]  ;
+    S(2, 0) = -q[4]  ;
+    S(2, 1) = q[3]   ;
+
+    Eigen::Vector4d quat_dot;
+
+    // Quaternion Integration
+    quat_dot <<  0.5 * (q[6] * eye - S) * v.segment<3>(3)  ,
+                -0.5 * q.segment<3>(3).dot(v.segment<3>(3));
+
+    std::cout << "quat_dot_hat: " << quat_dot_hat.transpose() << "\n";
+    std::cout << "quat_dot: " << quat_dot.transpose() << "\n";
 
 
 }
