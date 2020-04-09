@@ -105,11 +105,12 @@ TEST_F(TestDerivatives, checkJac)
 
 TEST_F(TestDerivatives, checkQuaternion)
 {
-    std::string link_name = "Contact1";
+    std::string link_name = "base_link";
 
     Eigen::VectorXd q;
     q.setRandom(_pin->nq());
     q.segment(3,4) = q.segment(3,4).normalized();
+    _pin->update(q);
 
     Eigen::VectorXd v;
     double h = 1e-5;
@@ -126,6 +127,7 @@ TEST_F(TestDerivatives, checkQuaternion)
     S.setZero();
     eye.setIdentity();
 
+
     S(0, 1) = -q[5]  ;
     S(0, 2) = q[4]   ;
     S(1, 0) = q[5]   ;
@@ -136,11 +138,13 @@ TEST_F(TestDerivatives, checkQuaternion)
     Eigen::Vector4d quat_dot;
 
     // Quaternion Integration
-    quat_dot <<  0.5 * (q[6] * eye - S) * v.segment<3>(3)  ,
+    quat_dot <<  0.5 * _pin->getPose(link_name).linear() * (q[6] * eye - S) * v.segment<3>(3)  ,
                 -0.5 * q.segment<3>(3).dot(v.segment<3>(3));
 
     std::cout << "quat_dot_hat: " << quat_dot_hat.transpose() << "\n";
     std::cout << "quat_dot: " << quat_dot.transpose() << "\n";
+
+    EXPECT_LE((quat_dot - quat_dot_hat).cwiseAbs().maxCoeff(), 1e-5);
 
 
 }
