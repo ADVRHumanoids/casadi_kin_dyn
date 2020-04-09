@@ -15,7 +15,9 @@ public:
     void update(const Eigen::VectorXd& q);
     Eigen::Affine3d getPose(std::string link);
     Eigen::MatrixXd getJacobian(std::string link);
+    Eigen::VectorXd integrate(const Eigen::VectorXd& q, const Eigen::VectorXd& v);
     int nq();
+    int nv();
 
     ~PinocchioWrapper();
 

@@ -7,6 +7,9 @@
 #include <pinocchio/algorithm/contact-dynamics.hpp>
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/crba.hpp>
+#include "pinocchio/algorithm/kinematics.hpp"
+#include "pinocchio/algorithm/jacobian.hpp"
+#include "pinocchio/algorithm/joint-configuration.hpp"
 
 #include "PinocchioWrapper.h"
 
@@ -25,6 +28,16 @@ public:
     {
         pinocchio::computeJointJacobians(_model, data(), q);
         pinocchio::framesForwardKinematics(_model, data(), q);
+    }
+    
+    Eigen::VectorXd integrate(const Eigen::VectorXd& q, const Eigen::VectorXd& v)
+    {
+        Eigen::VectorXd q_int; 
+        
+        q_int = pinocchio::integrate(_model, q, v);
+        
+        return q_int;
+        
     }
 
     Eigen::Affine3d getPose(std::string link)
@@ -55,6 +68,11 @@ public:
     {
         return _model.nq;
     }
+    
+    int nv()
+    {
+        return _model.nv;
+    }
 
     ~Impl()
     {
@@ -83,6 +101,11 @@ void PinocchioWrapper::update(const Eigen::VectorXd& q)
     return impl->update(q);
 }
 
+Eigen::VectorXd PinocchioWrapper::integrate(const Eigen::VectorXd& q, const Eigen::VectorXd& v)
+{
+    return impl->integrate(q, v);
+}
+
 Eigen::Affine3d PinocchioWrapper::getPose(std::string link)
 {
     return impl->getPose(link);
@@ -96,6 +119,11 @@ Eigen::MatrixXd PinocchioWrapper::getJacobian(std::string link)
 int PinocchioWrapper::nq()
 {
     return impl->nq();
+}
+
+int PinocchioWrapper::nv()
+{
+    return impl->nv();
 }
 
 PinocchioWrapper::~PinocchioWrapper()
