@@ -14,7 +14,7 @@
 
 #include <urdf_parser/urdf_parser.h>
 
-#include <casadi_kin_dyn/pinocchio_extra.h>
+
 
 namespace casadi_kin_dyn
 {
