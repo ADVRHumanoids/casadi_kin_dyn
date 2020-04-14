@@ -64,6 +64,15 @@ private:
     pinocchio::Model _model_dbl;
     casadi::SX _q, _qdot, _qddot, _tau;
 
+    /**
+     * @brief toLocal rotate floating base part of vector x, intended in gloabl coordinates, to local coordinates
+     * @param x vector of FULL joint velocities or accelerations in global coordinates
+     * @return FULL vector of rotated x in local coordinates
+     *
+     * NOTE: local coordinates are intended in the "base_link" frame
+     */
+    Eigen::Matrix<Scalar, -1, 1> toLocal(const Eigen::Matrix<Scalar, -1, 1>& x);
+
 
 };
 
@@ -151,14 +160,24 @@ std::string CasadiKinDyn::Impl::ccrba()
 
 }
 
-Eigen::Matrix<casadi::SX, 3, 3> cross(const Eigen::Matrix<casadi::SX, 3, 1>& a) //a x
+Eigen::Matrix<CasadiKinDyn::Impl::Scalar, -1, 1> CasadiKinDyn::Impl::toLocal(const Eigen::Matrix<Scalar, -1, 1>& x)
 {
-    Eigen::Matrix<casadi::SX, 3, 3> S;
-    S.setZero();
-    S(0,1) = -a[2]; S(0,2) =  a[1];
-    S(1,0) =  a[2]; S(1,2) = -a[0];
-    S(2,0) = -a[1]; S(2,1) =  a[0];
-    return S;
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto base_frame_idx = model.getFrameId("base_link");
+
+    auto eig_fk_rot = data.oMf.at(base_frame_idx).rotation();
+
+    auto y = x;
+
+    Eigen::Matrix<Scalar, 6, 6> Adj;
+    Adj.setZero();
+    Adj.block(0,0,3,3) = eig_fk_rot.transpose();
+    Adj.block(3,3,3,3) = eig_fk_rot.transpose();
+    y.block(0,0,6,1) = Adj*x.block(0,0,6,1);
+
+    return y;
 }
 
 std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
@@ -167,6 +186,7 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
     pinocchio::DataTpl<Scalar> data(model);
 
     auto frame_idx = model.getFrameId(link_name);
+    auto base_frame_idx = model.getFrameId("base_link");
 
     // Compute expression for forward kinematics with Pinocchio
     Eigen::Matrix<Scalar, 6, -1> J;
@@ -177,8 +197,16 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
 
 
+    auto eig_fk_rot = data.oMf.at(base_frame_idx).rotation();
 
-    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*cas_to_eig(_qdot);
+    auto qdot = cas_to_eig(_qdot);
+    Eigen::Matrix<Scalar, 6, 6> Adj;
+    Adj.setZero();
+    Adj.block(0,0,3,3) = eig_fk_rot.transpose();
+    Adj.block(3,3,3,3) = eig_fk_rot.transpose();
+    qdot.block(0,0,6,1) = Adj*cas_to_eig(_qdot).block(0,0,6,1);
+
+    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*qdot;
 
 
     auto ee_vel_linear = eig_to_cas(eig_vel.head(3));
