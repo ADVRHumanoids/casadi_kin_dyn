@@ -39,11 +39,11 @@ public:
     
     std::string centerOfMass();
 
-    std::string jacobian(std::string link_name);
-    
+    std::string jacobian(std::string link_name, ReferenceFrame ref);
+
     std::string jacobian_time_variation(std::string link_name);
 
-    std::string frameVelocity(std::string link_name);
+    std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
     std::string frameAcceleration(std::string link_name);
 
@@ -63,8 +63,6 @@ private:
 
     pinocchio::Model _model_dbl;
     casadi::SX _q, _qdot, _qddot, _tau;
-
-    Eigen::Matrix<Scalar, -1, 1> rotateMotion(const Eigen::Matrix<Scalar, -1, 1>& x, const Eigen::Matrix<Scalar, 3, 3> rot);
 
 
 };
@@ -94,22 +92,8 @@ std::string CasadiKinDyn::Impl::rnea()
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
-    auto base_frame_idx = model.getFrameId("base_link");
 
-    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
-
-    auto qdot = cas_to_eig(_qdot);
-    qdot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qdot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
-    auto qddot = cas_to_eig(_qddot);
-    qddot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qddot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
-
-
-//    pinocchio::rnea(model, data,
-//                    cas_to_eig(_q),
-//                    cas_to_eig(_qdot),
-//                    cas_to_eig(_qddot));
-
-    pinocchio::rnea(model, data, cas_to_eig(_q), qdot, qddot);
+    pinocchio::rnea(model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_qddot));
 
 
     auto tau = eig_to_cas(data.tau);
@@ -166,24 +150,12 @@ std::string CasadiKinDyn::Impl::ccrba()
 
 }
 
-Eigen::Matrix<CasadiKinDyn::Impl::Scalar, -1, 1> CasadiKinDyn::Impl::rotateMotion(const Eigen::Matrix<Scalar, -1, 1>& x,
-                                                              const Eigen::Matrix<Scalar, 3, 3> rot)
-{
-    Eigen::Matrix<Scalar, 6, 6> Adj;
-    Adj.setZero();
-    Adj.block(0,0,3,3) = rot;
-    Adj.block(3,3,3,3) = rot;
-
-    return Adj*x;
-}
-
-std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
+std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFrame ref)
 {
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
     auto frame_idx = model.getFrameId(link_name);
-    auto base_frame_idx = model.getFrameId("base_link");
 
     // Compute expression for forward kinematics with Pinocchio
     Eigen::Matrix<Scalar, 6, -1> J;
@@ -191,15 +163,11 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
 
     pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
     pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
-    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
-
-
-    auto qdot = cas_to_eig(_qdot);
-    qdot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qdot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
+    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
 
 
 
-    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*qdot;
+    Eigen::Matrix<Scalar, 6, 1> eig_vel = J*cas_to_eig(_qdot);
 
 
     auto ee_vel_linear = eig_to_cas(eig_vel.head(3));
@@ -304,7 +272,7 @@ std::string CasadiKinDyn::Impl::centerOfMass()
 
 
 
-std::string CasadiKinDyn::Impl::jacobian(std::string link_name)
+std::string CasadiKinDyn::Impl::jacobian(std::string link_name, ReferenceFrame ref)
 {
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
@@ -317,7 +285,7 @@ std::string CasadiKinDyn::Impl::jacobian(std::string link_name)
 
     pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
     pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
-    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
+    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J); //"LOCAL" DEFAULT PINOCCHIO COMPUTATION
 
 
     auto Jac = eigmat_to_cas(J);
@@ -449,9 +417,9 @@ std::string CasadiKinDyn::fk(std::string link_name)
     return impl().fk(link_name);
 }
 
-std::string CasadiKinDyn::frameVelocity(std::string link_name)
+std::string CasadiKinDyn::frameVelocity(std::string link_name, ReferenceFrame ref)
 {
-    return impl().frameVelocity(link_name);
+    return impl().frameVelocity(link_name, ref);
 }
 
 std::string CasadiKinDyn::frameAcceleration(std::string link_name)
@@ -464,9 +432,9 @@ std::string CasadiKinDyn::centerOfMass()
     return impl().centerOfMass();
 }
 
-std::string CasadiKinDyn::jacobian(std::string link_name)
+std::string CasadiKinDyn::jacobian(std::string link_name, ReferenceFrame ref)
 {
-    return impl().jacobian(link_name);
+    return impl().jacobian(link_name, ref);
 }
 
 std::string CasadiKinDyn::jacobian_time_variation(std::string link_name)
@@ -488,5 +456,6 @@ CasadiKinDyn::Impl & CasadiKinDyn::impl()
 {
     return *_impl;
 }
+
 
 }

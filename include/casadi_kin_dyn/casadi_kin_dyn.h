@@ -10,6 +10,12 @@ class CasadiKinDyn
 {
 
 public:
+    enum ReferenceFrame
+    {
+      WORLD = 0, //This is spatial in world frame
+      LOCAL = 1, //This is spatial in local frame
+      LOCAL_WORLD_ALIGNED = 2 //This is classical in world frame
+    };
 
     CasadiKinDyn(std::string urdf_string);
 
@@ -28,11 +34,11 @@ public:
     
     std::string centerOfMass();
 
-    std::string jacobian(std::string link_name);
+    std::string jacobian(std::string link_name, ReferenceFrame ref);
     
     std::string jacobian_time_variation(std::string link_name);
 
-    std::string frameVelocity(std::string link_name);
+    std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
     std::string frameAcceleration(std::string link_name);
 
