@@ -64,14 +64,7 @@ private:
     pinocchio::Model _model_dbl;
     casadi::SX _q, _qdot, _qddot, _tau;
 
-    /**
-     * @brief toLocal rotate floating base part of vector x, intended in gloabl coordinates, to local coordinates
-     * @param x vector of FULL joint velocities or accelerations in global coordinates
-     * @return FULL vector of rotated x in local coordinates
-     *
-     * NOTE: local coordinates are intended in the "base_link" frame
-     */
-    Eigen::Matrix<Scalar, -1, 1> toLocal(const Eigen::Matrix<Scalar, -1, 1>& x);
+    Eigen::Matrix<Scalar, -1, 1> rotateMotion(const Eigen::Matrix<Scalar, -1, 1>& x, const Eigen::Matrix<Scalar, 3, 3> rot);
 
 
 };
@@ -160,24 +153,15 @@ std::string CasadiKinDyn::Impl::ccrba()
 
 }
 
-Eigen::Matrix<CasadiKinDyn::Impl::Scalar, -1, 1> CasadiKinDyn::Impl::toLocal(const Eigen::Matrix<Scalar, -1, 1>& x)
+Eigen::Matrix<CasadiKinDyn::Impl::Scalar, -1, 1> CasadiKinDyn::Impl::rotateMotion(const Eigen::Matrix<Scalar, -1, 1>& x,
+                                                              const Eigen::Matrix<Scalar, 3, 3> rot)
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
-
-    auto base_frame_idx = model.getFrameId("base_link");
-
-    auto eig_fk_rot = data.oMf.at(base_frame_idx).rotation();
-
-    auto y = x;
-
     Eigen::Matrix<Scalar, 6, 6> Adj;
     Adj.setZero();
-    Adj.block(0,0,3,3) = eig_fk_rot.transpose();
-    Adj.block(3,3,3,3) = eig_fk_rot.transpose();
-    y.block(0,0,6,1) = Adj*x.block(0,0,6,1);
+    Adj.block(0,0,3,3) = rot;
+    Adj.block(3,3,3,3) = rot;
 
-    return y;
+    return Adj*x;
 }
 
 std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
@@ -197,14 +181,10 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name)
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
 
 
-    auto eig_fk_rot = data.oMf.at(base_frame_idx).rotation();
-
     auto qdot = cas_to_eig(_qdot);
-    Eigen::Matrix<Scalar, 6, 6> Adj;
-    Adj.setZero();
-    Adj.block(0,0,3,3) = eig_fk_rot.transpose();
-    Adj.block(3,3,3,3) = eig_fk_rot.transpose();
-    qdot.block(0,0,6,1) = Adj*cas_to_eig(_qdot).block(0,0,6,1);
+    qdot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qdot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
+
+
 
     Eigen::Matrix<Scalar, 6, 1> eig_vel = J*qdot;
 
