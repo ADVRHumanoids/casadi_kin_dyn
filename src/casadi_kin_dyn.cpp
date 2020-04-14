@@ -94,10 +94,23 @@ std::string CasadiKinDyn::Impl::rnea()
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
-    pinocchio::rnea(model, data,
-                    cas_to_eig(_q),
-                    cas_to_eig(_qdot),
-                    cas_to_eig(_qddot));
+    auto base_frame_idx = model.getFrameId("base_link");
+
+    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+
+    auto qdot = cas_to_eig(_qdot);
+    qdot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qdot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
+    auto qddot = cas_to_eig(_qddot);
+    qddot.block(0,0,6,1) = rotateMotion(cas_to_eig(_qddot).block(0,0,6,1), data.oMf.at(base_frame_idx).rotation().transpose());
+
+
+//    pinocchio::rnea(model, data,
+//                    cas_to_eig(_q),
+//                    cas_to_eig(_qdot),
+//                    cas_to_eig(_qddot));
+
+    pinocchio::rnea(model, data, cas_to_eig(_q), qdot, qddot);
+
 
     auto tau = eig_to_cas(data.tau);
     casadi::Function ID("rnea",
