@@ -48,6 +48,8 @@ public:
 
     std::string kineticEnergy();
 
+    std::string potentialEnergy();
+
 
 
 private:
@@ -92,19 +94,52 @@ std::string CasadiKinDyn::Impl::kineticEnergy()
     pinocchio::DataTpl<Scalar> data(model);
 
 
-    Scalar DT = pinocchio::kineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot), true);
-
-
+    Scalar DT = pinocchio::kineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
 
     casadi::Function KINETICENERGY("kineticEnergy",
     {_q, _qdot}, {DT},
-    {"q", "v", "a"}, {"DT"});
+    {"q", "v"}, {"DT"});
 
     std::stringstream ss;
     ss << KINETICENERGY.serialize();
 
     return ss.str();
 }
+
+std::string CasadiKinDyn::Impl::potentialEnergy()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+
+    //Scalar DU = pinocchio::potentialEnergy(model, data, cas_to_eig(_q)); <-- This does not compile
+
+
+    //Local implementation of pinocchio::potentialEnergy(model, data, q)
+    data.potential_energy = Scalar(0);
+    Eigen::Matrix<Scalar, 3, 1> g = model.gravity.linear();
+
+    pinocchio::forwardKinematics(model,data,cas_to_eig(_q));
+
+    Eigen::Matrix<Scalar, 3, 1> com_global;
+    for(pinocchio::Model::JointIndex i=1; i<(pinocchio::Model::JointIndex)(model.njoints); ++i)
+    {
+      com_global.noalias() = data.oMi[i].translation() + data.oMi[i].rotation() * model.inertias[i].lever();
+      data.potential_energy -= model.inertias[i].mass() * com_global.dot(g);
+    }
+
+    Scalar DU = data.potential_energy;
+
+    casadi::Function POTENTIALENERGY("potentialEnergy",
+    {_q}, {DU},
+    {"q"}, {"DU"});
+
+    std::stringstream ss;
+    ss << POTENTIALENERGY.serialize();
+
+    return ss.str();
+}
+
 
 std::string CasadiKinDyn::Impl::rnea()
 {
@@ -407,6 +442,11 @@ CasadiKinDyn::Impl & CasadiKinDyn::impl()
 std::string CasadiKinDyn::kineticEnergy()
 {
     return impl().kineticEnergy();
+}
+
+std::string CasadiKinDyn::potentialEnergy()
+{
+    return impl().potentialEnergy();
 }
 
 

@@ -23,6 +23,7 @@ PYBIND11_MODULE(pycasadi_kin_dyn, m) {
             .def("jacobian", &CasadiKinDyn::jacobian)
             .def("frameVelocity", &CasadiKinDyn::frameVelocity)
             .def("kineticEnergy", &CasadiKinDyn::kineticEnergy)
+            .def("potentialEnergy", &CasadiKinDyn::potentialEnergy)
             ;
 
     py::enum_<CasadiKinDyn::ReferenceFrame>(casadikindyn, "ReferenceFrame")

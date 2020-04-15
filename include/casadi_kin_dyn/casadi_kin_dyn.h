@@ -40,6 +40,8 @@ public:
 
     std::string kineticEnergy();
 
+    std::string potentialEnergy();
+
     ~CasadiKinDyn();
 
 private:
