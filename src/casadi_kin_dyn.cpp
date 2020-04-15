@@ -11,6 +11,7 @@
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
+#include <pinocchio/algorithm/energy.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -44,6 +45,8 @@ public:
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
     std::string crba();
+
+    std::string kineticEnergy();
 
 
 
@@ -81,6 +84,26 @@ int CasadiKinDyn::Impl::nq() const
 int CasadiKinDyn::Impl::nv() const
 {
     return _model_dbl.nv;
+}
+
+std::string CasadiKinDyn::Impl::kineticEnergy()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+
+    Scalar DT = pinocchio::kineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot), true);
+
+
+
+    casadi::Function KINETICENERGY("kineticEnergy",
+    {_q, _qdot}, {DT},
+    {"q", "v", "a"}, {"DT"});
+
+    std::stringstream ss;
+    ss << KINETICENERGY.serialize();
+
+    return ss.str();
 }
 
 std::string CasadiKinDyn::Impl::rnea()
@@ -379,6 +402,11 @@ const CasadiKinDyn::Impl & CasadiKinDyn::impl() const
 CasadiKinDyn::Impl & CasadiKinDyn::impl()
 {
     return *_impl;
+}
+
+std::string CasadiKinDyn::kineticEnergy()
+{
+    return impl().kineticEnergy();
 }
 
 
