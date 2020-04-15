@@ -36,11 +36,7 @@ public:
 
     std::string jacobian(std::string link_name, ReferenceFrame ref);
     
-    std::string jacobian_time_variation(std::string link_name);
-
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
-
-    std::string frameAcceleration(std::string link_name);
 
     ~CasadiKinDyn();
 

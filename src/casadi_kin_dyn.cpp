@@ -41,11 +41,7 @@ public:
 
     std::string jacobian(std::string link_name, ReferenceFrame ref);
 
-    std::string jacobian_time_variation(std::string link_name);
-
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
-
-    std::string frameAcceleration(std::string link_name);
 
     std::string crba();
 
@@ -183,43 +179,6 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     return ss.str();
 }
 
-std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name)
-{
-//    auto model = _model_dbl.cast<Scalar>();
-//    pinocchio::DataTpl<Scalar> data(model);
-
-//    auto frame_idx = model.getFrameId(link_name);
-
-//    // Compute expression for forward kinematics with Pinocchio
-//    Eigen::Matrix<Scalar, 6, -1> J, dJ;
-//    J.setZero(6, nv());
-//    dJ.setZero(6, nv());
-
-//    pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
-//    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
-//    pinocchio::forwardKinematics(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
-//    pinocchio::updateFramePlacements(model, data);
-
-//    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
-//    pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, dJ);//<-- THIS PROBABLY DOES NOTHING
-
-
-//    Eigen::Matrix<Scalar, 6, 1> eig_acc = J*cas_to_eig(_qddot) + dJ*cas_to_eig(_qdot);
-
-//    auto ee_acc_linear = eig_to_cas(eig_acc.head(3));
-//    auto ee_acc_angular = eig_to_cas(eig_acc.tail(3));
-
-//    casadi::Function FRAME_ACCELERATION("frame_acceleration",
-//    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
-//    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
-
-
-//    std::stringstream ss;
-//    ss << FRAME_ACCELERATION.serialize();
-
-//    return ss.str();
-}
-
 std::string CasadiKinDyn::Impl::fk(std::string link_name)
 {
     auto model = _model_dbl.cast<Scalar>();
@@ -297,32 +256,6 @@ std::string CasadiKinDyn::Impl::jacobian(std::string link_name, ReferenceFrame r
     return ss.str();
 }
 
-std::string CasadiKinDyn::Impl::jacobian_time_variation(std::string link_name)
-{
-//    auto model = _model_dbl.cast<Scalar>();
-//    pinocchio::DataTpl<Scalar> data(model);
-
-//    auto frame_idx = model.getFrameId(link_name);
-
-//    // Compute expression for forward kinematics with Pinocchio
-//    Eigen::Matrix<Scalar, 6, -1> dJ;
-//    dJ.setZero(6, nv());
-
-//    pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
-//    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
-//    pinocchio::forwardKinematics(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
-//    pinocchio::updateFramePlacements(model, data);
-
-//    pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, dJ);//<-- THIS PROBABLY DOES NOTHING
-
-//    auto dJac = eigmat_to_cas(dJ);
-//    casadi::Function JACOBIAN_TIME_VARIATION("jacobian_time_variation", {_q, _qdot}, {dJac}, {"q", "v"}, {"dJ"});
-
-//    std::stringstream ss;
-//    ss << JACOBIAN_TIME_VARIATION.serialize();
-
-//    return ss.str();
-}
 
 std::string CasadiKinDyn::Impl::crba()
 {
@@ -422,11 +355,6 @@ std::string CasadiKinDyn::frameVelocity(std::string link_name, ReferenceFrame re
     return impl().frameVelocity(link_name, ref);
 }
 
-std::string CasadiKinDyn::frameAcceleration(std::string link_name)
-{
-    return impl().frameAcceleration(link_name);
-}
-
 std::string CasadiKinDyn::centerOfMass()
 {
     return impl().centerOfMass();
@@ -437,10 +365,6 @@ std::string CasadiKinDyn::jacobian(std::string link_name, ReferenceFrame ref)
     return impl().jacobian(link_name, ref);
 }
 
-std::string CasadiKinDyn::jacobian_time_variation(std::string link_name)
-{
-    return impl().jacobian_time_variation(link_name);
-}
 
 CasadiKinDyn::~CasadiKinDyn()
 {
