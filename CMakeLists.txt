@@ -6,6 +6,7 @@ find_package(Eigen3 REQUIRED)
 find_package(casadi 3.4.5 REQUIRED)
 find_package(urdfdom REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(pinocchio REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -23,7 +24,7 @@ set(${LIBRARY_TARGET_NAME}_SRC
         src/casadi_kin_dyn.cpp
     )
 add_library(${LIBRARY_TARGET_NAME} SHARED ${${LIBRARY_TARGET_NAME}_SRC})
-target_link_libraries(${LIBRARY_TARGET_NAME} PRIVATE ${CASADI_LIBRARIES} ${urdfdom_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(${LIBRARY_TARGET_NAME} PRIVATE casadi ${PINOCCHIO_LIBRARIES} ${urdfdom_LIBRARIES} ${Boost_LIBRARIES})
 target_compile_options(${LIBRARY_TARGET_NAME} PRIVATE -std=c++11)
 set_target_properties(${LIBRARY_TARGET_NAME} PROPERTIES 
         VERSION ${${PROJECT_NAME}_VERSION})

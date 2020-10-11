@@ -12,6 +12,7 @@
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/energy.hpp>
+#include <pinocchio/autodiff/casadi.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -46,7 +47,7 @@ public:
 
     std::string crba();
 
-    std::string kineticEnergy();
+     std::string kineticEnergy();
 
     std::string potentialEnergy();
 
@@ -88,23 +89,23 @@ int CasadiKinDyn::Impl::nv() const
     return _model_dbl.nv;
 }
 
-std::string CasadiKinDyn::Impl::kineticEnergy()
-{
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+ std::string CasadiKinDyn::Impl::kineticEnergy()
+ {
+     auto model = _model_dbl.cast<Scalar>();
+     pinocchio::DataTpl<Scalar> data(model);
 
 
-    Scalar DT = pinocchio::kineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+     Scalar DT = pinocchio::computeKineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
 
-    casadi::Function KINETICENERGY("kineticEnergy",
-    {_q, _qdot}, {DT},
-    {"q", "v"}, {"DT"});
+     casadi::Function KINETICENERGY("kineticEnergy",
+     {_q, _qdot}, {DT},
+     {"q", "v"}, {"DT"});
 
-    std::stringstream ss;
-    ss << KINETICENERGY.serialize();
+     std::stringstream ss;
+     ss << KINETICENERGY.serialize();
 
-    return ss.str();
-}
+     return ss.str();
+ }
 
 std::string CasadiKinDyn::Impl::potentialEnergy()
 {
@@ -112,23 +113,23 @@ std::string CasadiKinDyn::Impl::potentialEnergy()
     pinocchio::DataTpl<Scalar> data(model);
 
 
-    //Scalar DU = pinocchio::potentialEnergy(model, data, cas_to_eig(_q)); <-- This does not compile
+    Scalar DU = pinocchio::computePotentialEnergy(model, data, cas_to_eig(_q));
 
 
-    //Local implementation of pinocchio::potentialEnergy(model, data, q)
-    data.potential_energy = Scalar(0);
-    Eigen::Matrix<Scalar, 3, 1> g = model.gravity.linear();
+//    //Local implementation of pinocchio::potentialEnergy(model, data, q)
+//    data.potential_energy = Scalar(0);
+//    Eigen::Matrix<Scalar, 3, 1> g = model.gravity.linear();
 
-    pinocchio::forwardKinematics(model,data,cas_to_eig(_q));
+//    pinocchio::forwardKinematics(model,data,cas_to_eig(_q));
 
-    Eigen::Matrix<Scalar, 3, 1> com_global;
-    for(pinocchio::Model::JointIndex i=1; i<(pinocchio::Model::JointIndex)(model.njoints); ++i)
-    {
-      com_global.noalias() = data.oMi[i].translation() + data.oMi[i].rotation() * model.inertias[i].lever();
-      data.potential_energy -= model.inertias[i].mass() * com_global.dot(g);
-    }
+//    Eigen::Matrix<Scalar, 3, 1> com_global;
+//    for(pinocchio::Model::JointIndex i=1; i<(pinocchio::Model::JointIndex)(model.njoints); ++i)
+//    {
+//      com_global.noalias() = data.oMi[i].translation() + data.oMi[i].rotation() * model.inertias[i].lever();
+//      data.potential_energy -= model.inertias[i].mass() * com_global.dot(g);
+//    }
 
-    Scalar DU = data.potential_energy;
+//    Scalar DU = data.potential_energy;
 
     casadi::Function POTENTIALENERGY("potentialEnergy",
     {_q}, {DU},
@@ -166,10 +167,10 @@ std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
-    pinocchio::computeCentroidalDynamics(model, data,
-                                         cas_to_eig(_q),
-                                         cas_to_eig(_qdot),
-                                         cas_to_eig(_qddot));
+    pinocchio::computeCentroidalMomentumTimeVariation(model, data,
+                                                      cas_to_eig(_q),
+                                                      cas_to_eig(_qdot),
+                                                      cas_to_eig(_qddot));
 
     auto h_lin = eig_to_cas(data.hg.linear());
     auto h_ang = eig_to_cas(data.hg.angular());
@@ -439,10 +440,10 @@ CasadiKinDyn::Impl & CasadiKinDyn::impl()
     return *_impl;
 }
 
-std::string CasadiKinDyn::kineticEnergy()
-{
-    return impl().kineticEnergy();
-}
+ std::string CasadiKinDyn::kineticEnergy()
+ {
+     return impl().kineticEnergy();
+ }
 
 std::string CasadiKinDyn::potentialEnergy()
 {
