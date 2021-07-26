@@ -45,6 +45,8 @@ public:
 
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
+    std::string frameAcceleration(std::string link_name, ReferenceFrame ref);
+
     std::string crba();
 
      std::string kineticEnergy();
@@ -217,7 +219,7 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     J.setZero(6, nv());
 
     pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
-    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+    //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
 
 
@@ -231,6 +233,41 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     casadi::Function FRAME_VELOCITY("frame_velocity",
     {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
     {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
+
+    std::stringstream ss;
+    ss << FRAME_VELOCITY.serialize();
+
+    return ss.str();
+}
+
+std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name, ReferenceFrame ref)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    // Compute expression for forward kinematics with Pinocchio
+    Eigen::Matrix<Scalar, 6, -1> J, Jdot;
+    J.setZero(6, nv());
+    Jdot.setZero(6, nv());
+
+    pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
+    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+   //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+
+
+    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
+    pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame(ref), Jdot);
+
+    Eigen::Matrix<Scalar, 6, 1> eig_acc = J*cas_to_eig(_qddot) + Jdot*cas_to_eig(_qdot);
+
+    auto ee_acc_linear = eig_to_cas(eig_acc.head(3));
+    auto ee_acc_angular = eig_to_cas(eig_acc.tail(3));
+
+    casadi::Function FRAME_VELOCITY("frame_acceleration",
+    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
+    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
 
     std::stringstream ss;
     ss << FRAME_VELOCITY.serialize();
@@ -412,6 +449,11 @@ std::string CasadiKinDyn::fk(std::string link_name)
 std::string CasadiKinDyn::frameVelocity(std::string link_name, ReferenceFrame ref)
 {
     return impl().frameVelocity(link_name, ref);
+}
+
+std::string CasadiKinDyn::frameAcceleration(std::string link_name, ReferenceFrame ref)
+{
+    return impl().frameAcceleration(link_name, ref);
 }
 
 std::string CasadiKinDyn::centerOfMass()
