@@ -30,6 +30,8 @@ public:
 
     std::string crba();
 
+    std::string aba();
+
     std::string fk(std::string link_name);
     
     std::string centerOfMass();

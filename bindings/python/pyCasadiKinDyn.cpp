@@ -1,20 +1,40 @@
 #include <casadi_kin_dyn/casadi_kin_dyn.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
+#include <pybind11/embed.h>
 
 namespace py = pybind11;
 using namespace casadi_kin_dyn;
 
-PYBIND11_MODULE(pycasadi_kin_dyn, m) {
+
+
+auto make_deserialized(std::string (CasadiKinDyn::* mem_fn)(void))
+{
+
+    // make lambda to create deserialized function
+    auto deserialized = [mem_fn](CasadiKinDyn& self)
+    {
+        // call member function
+        auto fstr = (self.*mem_fn)();
+        auto cs = py::module_::import("casadi");
+        auto Function = cs.attr("Function");
+        auto deserialize = Function.attr("deserialize");
+        return deserialize(fstr);
+    };
+
+    return deserialized;
+}
+
+PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
     
-    py::class_<CasadiKinDyn>casadikindyn(m, "CasadiKinDyn");
+    py::class_<CasadiKinDyn> casadikindyn(m, "CasadiKinDyn");
 
     casadikindyn.def(py::init<std::string>())
-    //py::class_<CasadiKinDyn>(m, "CasadiKinDyn")
             .def(py::init<std::string>())
             .def("nq", &CasadiKinDyn::nq)
             .def("nv", &CasadiKinDyn::nv)
             .def("rnea", &CasadiKinDyn::rnea)
+            .def("aba", make_deserialized(&CasadiKinDyn::aba))
             .def("crba", &CasadiKinDyn::crba)
             .def("ccrba", &CasadiKinDyn::ccrba)
             .def("computeCentroidalDynamics", &CasadiKinDyn::computeCentroidalDynamics)

@@ -13,6 +13,7 @@
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/energy.hpp>
 #include <pinocchio/autodiff/casadi.hpp>
+#include <pinocchio/algorithm/aba.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -49,9 +50,11 @@ public:
 
     std::string crba();
 
-     std::string kineticEnergy();
+    std::string kineticEnergy();
 
     std::string potentialEnergy();
+
+    std::string aba();
 
 
 
@@ -117,28 +120,32 @@ std::string CasadiKinDyn::Impl::potentialEnergy()
 
     Scalar DU = pinocchio::computePotentialEnergy(model, data, cas_to_eig(_q));
 
-
-//    //Local implementation of pinocchio::potentialEnergy(model, data, q)
-//    data.potential_energy = Scalar(0);
-//    Eigen::Matrix<Scalar, 3, 1> g = model.gravity.linear();
-
-//    pinocchio::forwardKinematics(model,data,cas_to_eig(_q));
-
-//    Eigen::Matrix<Scalar, 3, 1> com_global;
-//    for(pinocchio::Model::JointIndex i=1; i<(pinocchio::Model::JointIndex)(model.njoints); ++i)
-//    {
-//      com_global.noalias() = data.oMi[i].translation() + data.oMi[i].rotation() * model.inertias[i].lever();
-//      data.potential_energy -= model.inertias[i].mass() * com_global.dot(g);
-//    }
-
-//    Scalar DU = data.potential_energy;
-
     casadi::Function POTENTIALENERGY("potentialEnergy",
     {_q}, {DU},
     {"q"}, {"DU"});
 
     std::stringstream ss;
     ss << POTENTIALENERGY.serialize();
+
+    return ss.str();
+}
+
+std::string CasadiKinDyn::Impl::aba()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+
+    pinocchio::aba(model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_tau));
+
+
+    auto ddq = eig_to_cas(data.ddq);
+    casadi::Function FD("rnea",
+    {_q, _qdot, _tau}, {ddq},
+    {"q", "v", "tau"}, {"a"});
+
+    std::stringstream ss;
+    ss << FD.serialize();
 
     return ss.str();
 }
@@ -439,6 +446,11 @@ std::string CasadiKinDyn::ccrba()
 std::string CasadiKinDyn::crba()
 {
     return impl().crba();
+}
+
+std::string CasadiKinDyn::aba()
+{
+    return impl().aba();
 }
 
 std::string CasadiKinDyn::fk(std::string link_name)
