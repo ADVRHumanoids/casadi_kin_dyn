@@ -2,6 +2,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/embed.h>
+#include <pybind11/detail/common.h>
+
 
 namespace py = pybind11;
 using namespace casadi_kin_dyn;
@@ -16,7 +18,12 @@ auto make_deserialized(std::string (CasadiKinDyn::* mem_fn)(void))
     {
         // call member function
         auto fstr = (self.*mem_fn)();
+
+#if PYBIND11_VERSION_MINOR > 6
         auto cs = py::module_::import("casadi");
+#else
+        auto cs = py::module::import("casadi");
+#endif
         auto Function = cs.attr("Function");
         auto deserialize = Function.attr("deserialize");
         return deserialize(fstr);
