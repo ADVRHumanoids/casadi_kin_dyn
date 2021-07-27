@@ -8,25 +8,33 @@ add_compile_options(-std=c++14)
 if(${pybind11_FOUND})
     
     message(STATUS "Will compile python bindings")
+
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-    pybind11_add_module(pycasadi_kin_dyn pyCasadiKinDyn.cpp)
-    target_link_libraries(pycasadi_kin_dyn PUBLIC casadi_kin_dyn)
+
+    set(MODULE_NAME pycasadi_kin_dyn)
+    if(${PYTHON_VERSION_MAJOR} EQUAL 3)
+        set(MODULE_NAME py3casadi_kin_dyn)
+    endif()
+
+    pybind11_add_module(${MODULE_NAME} pyCasadiKinDyn.cpp)
+    target_link_libraries(${MODULE_NAME} PUBLIC casadi_kin_dyn)
+    target_compile_definitions(${MODULE_NAME} PRIVATE "-DCASADI_KIN_DYN_MODULE=${MODULE_NAME}")
+
 
     
     # get python install path 
     execute_process(
-        COMMAND python -c "if True:
+        COMMAND ${PYTHON_EXECUTABLE} -c "if True:
             from distutils import sysconfig as sc
             print(sc.get_python_lib(prefix='', plat_specific=True))"
         OUTPUT_VARIABLE PYTHON_SITE
         OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "Python install dir: ${PYTHON_SITE}")
     
-    install(TARGETS pycasadi_kin_dyn
+    install(TARGETS ${MODULE_NAME}
             DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
             
-    file(WRITE ${CMAKE_BINARY_DIR}/__init__.py "")
-    install(FILES  ${CMAKE_BINARY_DIR}/__init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
+    install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
             
 else()
