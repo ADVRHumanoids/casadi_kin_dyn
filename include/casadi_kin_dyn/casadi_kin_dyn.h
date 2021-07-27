@@ -38,6 +38,12 @@ public:
     
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
+    std::string frameAcceleration(std::string link_name, ReferenceFrame ref);
+
+    std::string kineticEnergy();
+
+    std::string potentialEnergy();
+
     ~CasadiKinDyn();
 
 private:

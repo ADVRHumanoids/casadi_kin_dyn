@@ -11,6 +11,8 @@
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
+#include <pinocchio/algorithm/energy.hpp>
+#include <pinocchio/autodiff/casadi.hpp>
 
 #include <urdf_parser/urdf_parser.h>
 
@@ -43,7 +45,13 @@ public:
 
     std::string frameVelocity(std::string link_name, ReferenceFrame ref);
 
+    std::string frameAcceleration(std::string link_name, ReferenceFrame ref);
+
     std::string crba();
+
+     std::string kineticEnergy();
+
+    std::string potentialEnergy();
 
 
 
@@ -83,6 +91,59 @@ int CasadiKinDyn::Impl::nv() const
     return _model_dbl.nv;
 }
 
+ std::string CasadiKinDyn::Impl::kineticEnergy()
+ {
+     auto model = _model_dbl.cast<Scalar>();
+     pinocchio::DataTpl<Scalar> data(model);
+
+
+     Scalar DT = pinocchio::computeKineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+
+     casadi::Function KINETICENERGY("kineticEnergy",
+     {_q, _qdot}, {DT},
+     {"q", "v"}, {"DT"});
+
+     std::stringstream ss;
+     ss << KINETICENERGY.serialize();
+
+     return ss.str();
+ }
+
+std::string CasadiKinDyn::Impl::potentialEnergy()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+
+    Scalar DU = pinocchio::computePotentialEnergy(model, data, cas_to_eig(_q));
+
+
+//    //Local implementation of pinocchio::potentialEnergy(model, data, q)
+//    data.potential_energy = Scalar(0);
+//    Eigen::Matrix<Scalar, 3, 1> g = model.gravity.linear();
+
+//    pinocchio::forwardKinematics(model,data,cas_to_eig(_q));
+
+//    Eigen::Matrix<Scalar, 3, 1> com_global;
+//    for(pinocchio::Model::JointIndex i=1; i<(pinocchio::Model::JointIndex)(model.njoints); ++i)
+//    {
+//      com_global.noalias() = data.oMi[i].translation() + data.oMi[i].rotation() * model.inertias[i].lever();
+//      data.potential_energy -= model.inertias[i].mass() * com_global.dot(g);
+//    }
+
+//    Scalar DU = data.potential_energy;
+
+    casadi::Function POTENTIALENERGY("potentialEnergy",
+    {_q}, {DU},
+    {"q"}, {"DU"});
+
+    std::stringstream ss;
+    ss << POTENTIALENERGY.serialize();
+
+    return ss.str();
+}
+
+
 std::string CasadiKinDyn::Impl::rnea()
 {
     auto model = _model_dbl.cast<Scalar>();
@@ -108,10 +169,10 @@ std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
 
-    pinocchio::computeCentroidalDynamics(model, data,
-                                         cas_to_eig(_q),
-                                         cas_to_eig(_qdot),
-                                         cas_to_eig(_qddot));
+    pinocchio::computeCentroidalMomentumTimeVariation(model, data,
+                                                      cas_to_eig(_q),
+                                                      cas_to_eig(_qdot),
+                                                      cas_to_eig(_qddot));
 
     auto h_lin = eig_to_cas(data.hg.linear());
     auto h_ang = eig_to_cas(data.hg.angular());
@@ -158,7 +219,7 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     J.setZero(6, nv());
 
     pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
-    pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+    //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
 
 
@@ -172,6 +233,41 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     casadi::Function FRAME_VELOCITY("frame_velocity",
     {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
     {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
+
+    std::stringstream ss;
+    ss << FRAME_VELOCITY.serialize();
+
+    return ss.str();
+}
+
+std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name, ReferenceFrame ref)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    // Compute expression for forward kinematics with Pinocchio
+    Eigen::Matrix<Scalar, 6, -1> J, Jdot;
+    J.setZero(6, nv());
+    Jdot.setZero(6, nv());
+
+    pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
+    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+   //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+
+
+    pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
+    pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame(ref), Jdot);
+
+    Eigen::Matrix<Scalar, 6, 1> eig_acc = J*cas_to_eig(_qddot) + Jdot*cas_to_eig(_qdot);
+
+    auto ee_acc_linear = eig_to_cas(eig_acc.head(3));
+    auto ee_acc_angular = eig_to_cas(eig_acc.tail(3));
+
+    casadi::Function FRAME_VELOCITY("frame_acceleration",
+    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
+    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
 
     std::stringstream ss;
     ss << FRAME_VELOCITY.serialize();
@@ -355,6 +451,11 @@ std::string CasadiKinDyn::frameVelocity(std::string link_name, ReferenceFrame re
     return impl().frameVelocity(link_name, ref);
 }
 
+std::string CasadiKinDyn::frameAcceleration(std::string link_name, ReferenceFrame ref)
+{
+    return impl().frameAcceleration(link_name, ref);
+}
+
 std::string CasadiKinDyn::centerOfMass()
 {
     return impl().centerOfMass();
@@ -379,6 +480,16 @@ const CasadiKinDyn::Impl & CasadiKinDyn::impl() const
 CasadiKinDyn::Impl & CasadiKinDyn::impl()
 {
     return *_impl;
+}
+
+ std::string CasadiKinDyn::kineticEnergy()
+ {
+     return impl().kineticEnergy();
+ }
+
+std::string CasadiKinDyn::potentialEnergy()
+{
+    return impl().potentialEnergy();
 }
 
 
