@@ -51,6 +51,8 @@ public:
 
     std::vector<double> q_max() const;
 
+    std::vector<std::string> joint_names() const;
+
     ~CasadiKinDyn();
 
 private:

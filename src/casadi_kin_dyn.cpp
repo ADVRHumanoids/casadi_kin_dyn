@@ -33,6 +33,7 @@ public:
     int nv() const;
     std::vector<double> q_min() const;
     std::vector<double> q_max() const;
+    std::vector<std::string> joint_names() const;
 
     std::string rnea();
     
@@ -92,6 +93,7 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
     _q_max.resize(_model_dbl.upperPositionLimit.size());
     for(unsigned int i = 0; i < _model_dbl.upperPositionLimit.size(); ++i)
         _q_max[i] = _model_dbl.upperPositionLimit[i];
+
 }
 
 std::vector<double> CasadiKinDyn::Impl::q_min() const
@@ -102,6 +104,11 @@ std::vector<double> CasadiKinDyn::Impl::q_min() const
 std::vector<double> CasadiKinDyn::Impl::q_max() const
 {
     return _q_max;
+}
+
+std::vector<std::string> CasadiKinDyn::Impl::joint_names() const
+{
+    return _model_dbl.names;
 }
 
 int CasadiKinDyn::Impl::nq() const
@@ -533,5 +540,11 @@ std::vector<double> CasadiKinDyn::q_max() const
 {
     return impl().q_max();
 }
+
+std::vector<std::string> CasadiKinDyn::joint_names() const
+{
+    return impl().joint_names();
+}
+
 
 }

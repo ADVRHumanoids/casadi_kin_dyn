@@ -43,6 +43,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("nv", &CasadiKinDyn::nv)
             .def("q_min", &CasadiKinDyn::q_min)
             .def("q_max", &CasadiKinDyn::q_max)
+            .def("joint_names", &CasadiKinDyn::joint_names)
             .def("rnea", &CasadiKinDyn::rnea)
             .def("aba", make_deserialized(&CasadiKinDyn::aba))
             .def("crba", &CasadiKinDyn::crba)
