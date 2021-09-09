@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace casadi_kin_dyn {
 
@@ -45,6 +46,10 @@ public:
     std::string kineticEnergy();
 
     std::string potentialEnergy();
+
+    std::vector<double> q_min() const;
+
+    std::vector<double> q_max() const;
 
     ~CasadiKinDyn();
 

@@ -3,6 +3,7 @@
 #include <pybind11/eigen.h>
 #include <pybind11/embed.h>
 #include <pybind11/detail/common.h>
+#include <pybind11/stl.h>
 
 
 namespace py = pybind11;
@@ -40,6 +41,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def(py::init<std::string>())
             .def("nq", &CasadiKinDyn::nq)
             .def("nv", &CasadiKinDyn::nv)
+            .def("q_min", &CasadiKinDyn::q_min)
+            .def("q_max", &CasadiKinDyn::q_max)
             .def("rnea", &CasadiKinDyn::rnea)
             .def("aba", make_deserialized(&CasadiKinDyn::aba))
             .def("crba", &CasadiKinDyn::crba)

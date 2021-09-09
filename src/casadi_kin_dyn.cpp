@@ -31,6 +31,8 @@ public:
 
     int nq() const;
     int nv() const;
+    std::vector<double> q_min() const;
+    std::vector<double> q_max() const;
 
     std::string rnea();
     
@@ -70,6 +72,7 @@ private:
 
     pinocchio::Model _model_dbl;
     casadi::SX _q, _qdot, _qddot, _tau;
+    std::vector<double> _q_min, _q_max;
 
 
 };
@@ -82,6 +85,23 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
     _tau = casadi::SX::sym("tau", _model_dbl.nv);
 
+    _q_min.resize(_model_dbl.lowerPositionLimit.size());
+    for(unsigned int i = 0; i < _model_dbl.lowerPositionLimit.size(); ++i)
+        _q_min[i] = _model_dbl.lowerPositionLimit[i];
+
+    _q_max.resize(_model_dbl.upperPositionLimit.size());
+    for(unsigned int i = 0; i < _model_dbl.upperPositionLimit.size(); ++i)
+        _q_max[i] = _model_dbl.upperPositionLimit[i];
+}
+
+std::vector<double> CasadiKinDyn::Impl::q_min() const
+{
+    return _q_min;
+}
+
+std::vector<double> CasadiKinDyn::Impl::q_max() const
+{
+    return _q_max;
 }
 
 int CasadiKinDyn::Impl::nq() const
@@ -504,5 +524,14 @@ std::string CasadiKinDyn::potentialEnergy()
     return impl().potentialEnergy();
 }
 
+std::vector<double> CasadiKinDyn::q_min() const
+{
+    return impl().q_min();
+}
+
+std::vector<double> CasadiKinDyn::q_max() const
+{
+    return impl().q_max();
+}
 
 }
