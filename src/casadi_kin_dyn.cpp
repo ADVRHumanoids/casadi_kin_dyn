@@ -34,6 +34,7 @@ public:
     std::vector<double> q_min() const;
     std::vector<double> q_max() const;
     std::vector<std::string> joint_names() const;
+    double mass() const;
 
     std::string rnea();
     
@@ -76,6 +77,7 @@ private:
     std::vector<double> _q_min, _q_max;
 
 
+
 };
 
 CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
@@ -93,6 +95,17 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
     _q_max.resize(_model_dbl.upperPositionLimit.size());
     for(unsigned int i = 0; i < _model_dbl.upperPositionLimit.size(); ++i)
         _q_max[i] = _model_dbl.upperPositionLimit[i];
+
+}
+
+double CasadiKinDyn::Impl::mass() const
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    Scalar M = pinocchio::computeTotalMass(model, data);
+
+    return double(M);
 
 }
 
@@ -546,5 +559,9 @@ std::vector<std::string> CasadiKinDyn::joint_names() const
     return impl().joint_names();
 }
 
+double CasadiKinDyn::mass() const
+{
+    return impl().mass();
+}
 
 }
