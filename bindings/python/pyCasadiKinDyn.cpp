@@ -9,8 +9,6 @@
 namespace py = pybind11;
 using namespace casadi_kin_dyn;
 
-
-
 auto make_deserialized(std::string (CasadiKinDyn::* mem_fn)(void))
 {
 

@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 
 project(casadi_kin_dyn VERSION 1.1.0 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+
 find_package(Eigen3 REQUIRED)
-find_package(casadi 3.4.5 REQUIRED)
+find_package(casadi 3.5.5 REQUIRED)
 find_package(urdfdom REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(pinocchio REQUIRED)

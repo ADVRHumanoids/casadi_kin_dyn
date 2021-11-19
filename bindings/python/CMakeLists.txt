@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(PYBIND11_PYTHON_VERSION 2.7 CACHE STRING "")
 find_package(pybind11 QUIET)
 
 add_compile_options(-std=c++14)
