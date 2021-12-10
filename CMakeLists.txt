@@ -35,6 +35,7 @@ target_include_directories(${LIBRARY_TARGET_NAME} INTERFACE "$<BUILD_INTERFACE:$
                                                             "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>"
                                                             ${EIGEN3_INCLUDE_DIR})
 
+
 # Specify installation targets, typology and destination folders.
 include(GNUInstallDirs)
 install(TARGETS  ${LIBRARY_TARGET_NAME}
@@ -73,6 +74,4 @@ if(BUILD_TESTS)
   add_custom_target(test_verbose ${CMAKE_CTEST_COMMAND} -V)
   add_subdirectory(tests)
 endif()
-
-
 

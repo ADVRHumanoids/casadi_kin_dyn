@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+casadi_kin_dyn/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -102,3 +103,5 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+CMakeLists.txt.user

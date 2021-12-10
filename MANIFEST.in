@@ -1,0 +1,1 @@
+recursive-include casadi_kin_dyn/ *.so*

@@ -19,8 +19,6 @@ if(${pybind11_FOUND})
     target_link_libraries(${MODULE_NAME} PUBLIC casadi_kin_dyn)
     target_compile_definitions(${MODULE_NAME} PRIVATE "-DCASADI_KIN_DYN_MODULE=${MODULE_NAME}")
 
-
-    
     # get python install path 
     execute_process(
         COMMAND ${PYTHON_EXECUTABLE} -c "if True:
@@ -35,7 +33,25 @@ if(${pybind11_FOUND})
             
     install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
-            
+    # Python package deployment
+    message(STATUS "diobbb")
+    add_custom_target(generate_python_package
+        COMMAND mkdir -p ${PROJECT_NAME}
+        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}
+        COMMAND ./copy_external_dependencies.py $<TARGET_FILE:${MODULE_NAME}> -d ${PROJECT_NAME} -c
+        COMMAND python3 -m build
+        DEPENDS ${MODULE_NAME}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating package ${MODULE_NAME}"
+    )
+
+    add_custom_target(upload_python_package
+        COMMAND twine upload dist/*
+        DEPENDS generate_python_package
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Uploading package ${MODULE_NAME}"
+    )
+      
 else()
     message(STATUS "Pybind11 not found, bindings won't be available")
 endif()
