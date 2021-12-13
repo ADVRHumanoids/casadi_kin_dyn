@@ -34,7 +34,6 @@ if(${pybind11_FOUND})
     install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
     # Python package deployment
-    message(STATUS "diobbb")
     add_custom_target(generate_python_package
         COMMAND mkdir -p ${PROJECT_NAME}
         COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}
