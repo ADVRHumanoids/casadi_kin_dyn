@@ -20,12 +20,12 @@ notifications:
       - arturo.laurenzi@iit.it
       - enrico.mingo@pal-robotics.com
     on_success: never
-    on_failure: always
+    on_failure: never
 
 before_script:
   - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
   - curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-  - sudo apt update && sudo apt install liburdfdom-dev cmake libeigen3-dev libboost-filesystem-dev libboost-serialization-dev libblas-dev liblapack-dev patchelf python3-venv
+  - sudo apt update && sudo apt install python3-pip liburdfdom-dev cmake libeigen3-dev libboost-filesystem-dev libboost-serialization-dev libblas-dev liblapack-dev patchelf python3-venv
   - sudo pip3 install build twine hhcm-forest==0.0.26
   - SRC_FOLDER=$PWD
   - cd .. && mkdir forest_ws && cd forest_ws && forest --init  # create forest ws for building
@@ -34,7 +34,7 @@ before_script:
 
 script: 
   - source setup.bash
-  - FOREST_ARGS="-m test --clone-protocol https --verbose -j2"
+  - FOREST_ARGS="--default-build-type Release --clone-protocol https --verbose -j2"
   - forest casadi_kin_dyn $FOREST_ARGS
   - cd build/casadi_kin_dyn
   - cd ../../src/casadi_kin_dyn
