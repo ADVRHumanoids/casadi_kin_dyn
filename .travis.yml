@@ -12,6 +12,7 @@ jobs:
 branches:
   only:
     - pypi
+    - /^v\d+\.\d+\.\d+.*$/  # version tags
 
 notifications:
   email:
