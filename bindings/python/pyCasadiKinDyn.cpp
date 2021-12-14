@@ -35,7 +35,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
     
     py::class_<CasadiKinDyn> casadikindyn(m, "CasadiKinDyn");
 
-    casadikindyn.def(py::init<std::string>())
+    casadikindyn.def(py::init<std::string, bool>(), py::arg("urdf"), py::arg("verbose") = false)
             .def(py::init<std::string>())
             .def("nq", &CasadiKinDyn::nq)
             .def("nv", &CasadiKinDyn::nv)

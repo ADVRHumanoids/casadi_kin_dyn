@@ -27,7 +27,7 @@ class CasadiKinDyn::Impl
 
 public:
 
-    Impl(urdf::ModelInterfaceSharedPtr urdf_model);
+    Impl(urdf::ModelInterfaceSharedPtr urdf_model, bool verbose);
 
     int nq() const;
     int nv() const;
@@ -78,9 +78,9 @@ private:
 
 };
 
-CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model)
+CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model, bool verbose)
 {
-    pinocchio::urdf::buildModel(urdf_model, _model_dbl, true); // verbose
+    pinocchio::urdf::buildModel(urdf_model, _model_dbl, verbose);
     _q = casadi::SX::sym("q", _model_dbl.nq);
     _qdot = casadi::SX::sym("v", _model_dbl.nv);
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
@@ -439,10 +439,10 @@ casadi::SX CasadiKinDyn::Impl::eigmat_to_cas(const CasadiKinDyn::Impl::MatrixXs 
 
 }
 
-CasadiKinDyn::CasadiKinDyn(std::string urdf_string)
+CasadiKinDyn::CasadiKinDyn(std::string urdf_string, bool verbose)
 {
     auto urdf = urdf::parseURDF(urdf_string);
-    _impl.reset(new Impl(urdf));
+    _impl.reset(new Impl(urdf, verbose));
 }
 
 int CasadiKinDyn::nq() const

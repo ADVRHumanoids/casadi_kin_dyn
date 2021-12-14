@@ -18,7 +18,7 @@ public:
       LOCAL_WORLD_ALIGNED = 2 //This is classical in world frame
     };
 
-    CasadiKinDyn(std::string urdf_string);
+    CasadiKinDyn(std::string urdf_string, bool verbose = false);
 
     int nq() const;
     int nv() const;
