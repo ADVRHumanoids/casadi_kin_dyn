@@ -35,10 +35,15 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
     
     py::class_<CasadiKinDyn> casadikindyn(m, "CasadiKinDyn");
 
-    casadikindyn.def(py::init<std::string, bool>(), py::arg("urdf"), py::arg("verbose") = false)
+    casadikindyn.def(py::init<std::string, bool, std::map<std::string, double>>(),
+                     py::arg("urdf"),
+                     py::arg("verbose") = false,
+                     py::arg("fixed_joints") = py::dict())
             .def(py::init<std::string>())
             .def("nq", &CasadiKinDyn::nq)
             .def("nv", &CasadiKinDyn::nv)
+            .def("mapToQ", &CasadiKinDyn::mapToQ)
+            .def("mapToV", &CasadiKinDyn::mapToV)
             .def("q_min", &CasadiKinDyn::q_min)
             .def("q_max", &CasadiKinDyn::q_max)
             .def("joint_names", &CasadiKinDyn::joint_names)

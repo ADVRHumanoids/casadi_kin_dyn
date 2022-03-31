@@ -11,6 +11,8 @@
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
+#include <pinocchio/algorithm/model.hpp>
+#include <pinocchio/algorithm/joint-configuration.hpp>
 #include <pinocchio/algorithm/energy.hpp>
 #include <pinocchio/autodiff/casadi.hpp>
 #include <pinocchio/algorithm/aba.hpp>
@@ -27,13 +29,21 @@ class CasadiKinDyn::Impl
 
 public:
 
-    Impl(urdf::ModelInterfaceSharedPtr urdf_model, bool verbose);
+    Impl(urdf::ModelInterfaceSharedPtr urdf_model,
+         bool verbose,
+         std::map<std::string, double> fixed_joints);
 
     int nq() const;
     int nv() const;
     std::vector<double> q_min() const;
     std::vector<double> q_max() const;
     std::vector<std::string> joint_names() const;
+
+    Eigen::VectorXd mapToQ(std::map<std::string, double> jmap);
+
+    Eigen::VectorXd mapToV(std::map<std::string, double> jmap);
+
+    std::string integrate();
 
     std::string rnea();
     
@@ -78,9 +88,42 @@ private:
 
 };
 
-CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model, bool verbose)
+CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
+                         bool verbose,
+                         std::map<std::string, double> fixed_joints)
 {
-    pinocchio::urdf::buildModel(urdf_model, _model_dbl, verbose);
+    // parse pinocchio model from urdf
+    pinocchio::Model model_full;
+    pinocchio::urdf::buildModel(urdf_model, model_full, verbose);
+
+    // reduce model
+    std::vector<pinocchio::JointIndex> joints_to_lock;
+    auto joint_pos = pinocchio::neutral(model_full);
+
+    for(auto [jname, jpos] : fixed_joints)
+    {
+        if(!model_full.existJointName(jname))
+        {
+            throw std::invalid_argument("joint does not exist (" + jname + ")");
+        }
+
+        size_t jidx = model_full.getJointId(jname);
+        size_t qidx = model_full.idx_qs[jidx];
+        size_t nq = model_full.nqs[jidx];
+
+        if(nq != 1)
+        {
+            throw std::invalid_argument("only 1-dof fixed joints are supported (" + jname + ")");
+        }
+
+        joints_to_lock.push_back(jidx);
+        joint_pos[qidx] = jpos;
+
+    }
+
+    pinocchio::buildReducedModel(model_full, joints_to_lock, joint_pos, _model_dbl);
+
+    // create symsfixed_joints
     _q = casadi::SX::sym("q", _model_dbl.nq);
     _qdot = casadi::SX::sym("v", _model_dbl.nv);
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
@@ -111,6 +154,75 @@ std::vector<std::string> CasadiKinDyn::Impl::joint_names() const
     return _model_dbl.names;
 }
 
+Eigen::VectorXd CasadiKinDyn::Impl::mapToQ(std::map<std::string, double> jmap)
+{
+    auto joint_pos = pinocchio::neutral(_model_dbl);
+
+    for(auto [jname, jpos] : jmap)
+    {
+        if(!_model_dbl.existJointName(jname))
+        {
+            throw std::invalid_argument("joint does not exist (" + jname + ")");
+        }
+
+        size_t jidx = _model_dbl.getJointId(jname);
+        size_t qidx = _model_dbl.idx_qs[jidx];
+        size_t nq = _model_dbl.nqs[jidx];
+
+        if(nq != 1)
+        {
+            throw std::invalid_argument("only 1-dof joints are supported (" + jname + ")");
+        }
+
+        joint_pos[qidx] = jpos;
+
+    }
+
+    return joint_pos;
+}
+
+Eigen::VectorXd CasadiKinDyn::Impl::mapToV(std::map<std::string, double> jmap)
+{
+    auto joint_vel = Eigen::VectorXd::Zero(nv()).eval();
+
+    for(auto [jname, jvel] : jmap)
+    {
+        if(!_model_dbl.existJointName(jname))
+        {
+            throw std::invalid_argument("joint does not exist (" + jname + ")");
+        }
+
+        size_t jidx = _model_dbl.getJointId(jname);
+        size_t vidx = _model_dbl.idx_vs[jidx];
+        size_t nv = _model_dbl.nvs[jidx];
+
+        if(nv != 1)
+        {
+            throw std::invalid_argument("only 1-dof joints are supported (" + jname + ")");
+        }
+
+        joint_vel[vidx] = jvel;
+
+    }
+
+    return joint_vel;
+}
+
+std::string CasadiKinDyn::Impl::integrate()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    auto qnext = pinocchio::integrate(model, cas_to_eig(_q), cas_to_eig(_qdot));
+
+    casadi::Function integrate("integrate",
+                                     {_q, _qdot}, {eig_to_cas(qnext)},
+                                     {"q", "v"}, {"qnext"});
+
+    std::stringstream ss;
+    ss << integrate.serialize();
+
+    return ss.str();
+}
+
 int CasadiKinDyn::Impl::nq() const
 {
     return _model_dbl.nq;
@@ -121,23 +233,23 @@ int CasadiKinDyn::Impl::nv() const
     return _model_dbl.nv;
 }
 
- std::string CasadiKinDyn::Impl::kineticEnergy()
- {
-     auto model = _model_dbl.cast<Scalar>();
-     pinocchio::DataTpl<Scalar> data(model);
+std::string CasadiKinDyn::Impl::kineticEnergy()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
 
 
-     Scalar DT = pinocchio::computeKineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+    Scalar DT = pinocchio::computeKineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
 
-     casadi::Function KINETICENERGY("kineticEnergy",
-     {_q, _qdot}, {DT},
-     {"q", "v"}, {"DT"});
+    casadi::Function KINETICENERGY("kineticEnergy",
+                                   {_q, _qdot}, {DT},
+                                   {"q", "v"}, {"DT"});
 
-     std::stringstream ss;
-     ss << KINETICENERGY.serialize();
+    std::stringstream ss;
+    ss << KINETICENERGY.serialize();
 
-     return ss.str();
- }
+    return ss.str();
+}
 
 std::string CasadiKinDyn::Impl::potentialEnergy()
 {
@@ -148,8 +260,8 @@ std::string CasadiKinDyn::Impl::potentialEnergy()
     Scalar DU = pinocchio::computePotentialEnergy(model, data, cas_to_eig(_q));
 
     casadi::Function POTENTIALENERGY("potentialEnergy",
-    {_q}, {DU},
-    {"q"}, {"DU"});
+                                     {_q}, {DU},
+                                     {"q"}, {"DU"});
 
     std::stringstream ss;
     ss << POTENTIALENERGY.serialize();
@@ -168,8 +280,8 @@ std::string CasadiKinDyn::Impl::aba()
 
     auto ddq = eig_to_cas(data.ddq);
     casadi::Function FD("rnea",
-    {_q, _qdot, _tau}, {ddq},
-    {"q", "v", "tau"}, {"a"});
+                        {_q, _qdot, _tau}, {ddq},
+                        {"q", "v", "tau"}, {"a"});
 
     std::stringstream ss;
     ss << FD.serialize();
@@ -189,8 +301,8 @@ std::string CasadiKinDyn::Impl::rnea()
 
     auto tau = eig_to_cas(data.tau);
     casadi::Function ID("rnea",
-    {_q, _qdot, _qddot}, {tau},
-    {"q", "v", "a"}, {"tau"});
+                        {_q, _qdot, _qddot}, {tau},
+                        {"q", "v", "a"}, {"tau"});
 
     std::stringstream ss;
     ss << ID.serialize();
@@ -213,8 +325,8 @@ std::string CasadiKinDyn::Impl::computeCentroidalDynamics()
     auto dh_lin = eig_to_cas(data.dhg.linear());
     auto dh_ang = eig_to_cas(data.dhg.angular());
     casadi::Function CD("computeCentroidalDynamics",
-    {_q, _qdot, _qddot}, {h_lin, h_ang, dh_lin, dh_ang},
-    {"q", "v", "a"}, {"h_lin", "h_ang", "dh_lin", "dh_ang"});
+                        {_q, _qdot, _qddot}, {h_lin, h_ang, dh_lin, dh_ang},
+                        {"q", "v", "a"}, {"h_lin", "h_ang", "dh_lin", "dh_ang"});
 
     std::stringstream ss;
     ss << CD.serialize();
@@ -231,8 +343,8 @@ std::string CasadiKinDyn::Impl::ccrba()
     auto Ah_cas = eigmat_to_cas(Ah);
 
     casadi::Function FK("ccrba",
-    {_q}, {Ah_cas},
-    {"q"}, {"A"});
+                        {_q}, {Ah_cas},
+                        {"q"}, {"A"});
 
     std::stringstream ss;
     ss << FK.serialize();
@@ -265,8 +377,8 @@ std::string CasadiKinDyn::Impl::frameVelocity(std::string link_name, ReferenceFr
     auto ee_vel_angular = eig_to_cas(eig_vel.tail(3));
 
     casadi::Function FRAME_VELOCITY("frame_velocity",
-    {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
-    {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
+                                    {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
+                                    {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
 
     std::stringstream ss;
     ss << FRAME_VELOCITY.serialize();
@@ -288,7 +400,7 @@ std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name, Referen
 
     pinocchio::computeJointJacobians(model, data, cas_to_eig(_q));
     pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
-   //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
+    //pinocchio::framesForwardKinematics(model, data, cas_to_eig(_q));
 
 
     pinocchio::getFrameJacobian(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J);
@@ -300,8 +412,8 @@ std::string CasadiKinDyn::Impl::frameAcceleration(std::string link_name, Referen
     auto ee_acc_angular = eig_to_cas(eig_acc.tail(3));
 
     casadi::Function FRAME_VELOCITY("frame_acceleration",
-    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
-    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
+                                    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
+                                    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
 
     std::stringstream ss;
     ss << FRAME_VELOCITY.serialize();
@@ -324,8 +436,8 @@ std::string CasadiKinDyn::Impl::fk(std::string link_name)
 
 
     casadi::Function FK("forward_kinematics",
-    {_q}, {ee_pos, ee_rot},
-    {"q"}, {"ee_pos", "ee_rot"});
+                        {_q}, {ee_pos, ee_rot},
+                        {"q"}, {"ee_pos", "ee_rot"});
 
 
     std::stringstream ss;
@@ -349,8 +461,8 @@ std::string CasadiKinDyn::Impl::centerOfMass()
     auto vcom = eig_to_cas(data.vcom[0]);
     auto acom = eig_to_cas(data.acom[0]);
     casadi::Function CoM("centerOfMass",
-    {_q, _qdot, _qddot}, {com, vcom, acom},
-    {"q", "v", "a"}, {"com", "vcom", "acom"});
+                         {_q, _qdot, _qddot}, {com, vcom, acom},
+                         {"q", "v", "a"}, {"com", "vcom", "acom"});
 
     std::stringstream ss;
     ss << CoM.serialize();
@@ -439,10 +551,12 @@ casadi::SX CasadiKinDyn::Impl::eigmat_to_cas(const CasadiKinDyn::Impl::MatrixXs 
 
 }
 
-CasadiKinDyn::CasadiKinDyn(std::string urdf_string, bool verbose)
+CasadiKinDyn::CasadiKinDyn(std::string urdf_string,
+                           bool verbose,
+                           std::map<std::string, double> fixed_joints)
 {
     auto urdf = urdf::parseURDF(urdf_string);
-    _impl.reset(new Impl(urdf, verbose));
+    _impl.reset(new Impl(urdf, verbose, fixed_joints));
 }
 
 int CasadiKinDyn::nq() const
@@ -453,6 +567,21 @@ int CasadiKinDyn::nq() const
 int CasadiKinDyn::nv() const
 {
     return impl().nv();
+}
+
+Eigen::VectorXd CasadiKinDyn::mapToQ(std::map<std::string, double> jmap)
+{
+    return impl().mapToQ(jmap);
+}
+
+Eigen::VectorXd CasadiKinDyn::mapToV(std::map<std::string, double> jmap)
+{
+    return impl().mapToV(jmap);
+}
+
+std::string CasadiKinDyn::integrate()
+{
+    return impl().integrate();
 }
 
 std::string CasadiKinDyn::rnea()
@@ -521,10 +650,10 @@ CasadiKinDyn::Impl & CasadiKinDyn::impl()
     return *_impl;
 }
 
- std::string CasadiKinDyn::kineticEnergy()
- {
-     return impl().kineticEnergy();
- }
+std::string CasadiKinDyn::kineticEnergy()
+{
+    return impl().kineticEnergy();
+}
 
 std::string CasadiKinDyn::potentialEnergy()
 {

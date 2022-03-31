@@ -4,6 +4,8 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <map>
+#include <Eigen/Dense>
 
 namespace casadi_kin_dyn {
 
@@ -18,10 +20,18 @@ public:
       LOCAL_WORLD_ALIGNED = 2 //This is classical in world frame
     };
 
-    CasadiKinDyn(std::string urdf_string, bool verbose = false);
+    CasadiKinDyn(std::string urdf_string, 
+                 bool verbose = false,
+                 std::map<std::string, double> fixed_joints = std::map<std::string, double>{});
 
     int nq() const;
     int nv() const;
+
+    Eigen::VectorXd mapToQ(std::map<std::string, double> jmap);
+
+    Eigen::VectorXd mapToV(std::map<std::string, double> jmap);
+
+    std::string integrate();
 
     std::string rnea();
     
