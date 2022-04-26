@@ -63,6 +63,8 @@ public:
 
     std::vector<std::string> joint_names() const;
 
+    double mass() const;
+
     ~CasadiKinDyn();
 
 private:

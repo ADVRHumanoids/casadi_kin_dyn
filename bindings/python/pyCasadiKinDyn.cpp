@@ -59,6 +59,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("frameAcceleration", &CasadiKinDyn::frameAcceleration)
             .def("kineticEnergy", &CasadiKinDyn::kineticEnergy)
             .def("potentialEnergy", &CasadiKinDyn::potentialEnergy)
+            .def("mass", &CasadiKinDyn::mass)
             ;
 
     py::enum_<CasadiKinDyn::ReferenceFrame>(casadikindyn, "ReferenceFrame")
