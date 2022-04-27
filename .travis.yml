@@ -22,6 +22,9 @@ notifications:
       - enrico.mingo@pal-robotics.com
     on_success: never
     on_failure: always
+    
+before_install:
+- rm -rf /opt/pyenv
 
 before_script:
   - echo "Travis tag is $TRAVIS_TAG"
