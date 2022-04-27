@@ -42,4 +42,3 @@ script:
   - make generate_python_package
   - cd ../../src/casadi_kin_dyn
   - if [ -z $TRAVIS_TAG ]; then echo "Not a tag build, will not upload to pypi"; else twine upload -u __token__ -p $PYPI_TOKEN dist/*.whl; fi
-
