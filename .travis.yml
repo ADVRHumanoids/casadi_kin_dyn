@@ -30,7 +30,7 @@ before_script:
   - sudo apt update && sudo apt install python3-pip python3-setuptools liburdfdom-dev cmake libeigen3-dev libboost-filesystem-dev libboost-serialization-dev libblas-dev liblapack-dev patchelf python3-venv
   - sudo pip3 install build twine hhcm-forest==0.0.26
   - SRC_FOLDER=$PWD
-  - cd .. && mkdir forest_ws && cd forest_ws && forest --init  # create forest ws for building
+  - cd .. && mkdir forest_ws && cd forest_ws && forest --init  # create forest ws for building 
   - ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
   - forest -a git@github.com:advrhumanoids/multidof_recipes.git master -u --clone-protocol https  # get recipes from repo
 
