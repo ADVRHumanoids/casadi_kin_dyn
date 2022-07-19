@@ -1,4 +1,7 @@
 #include <casadi_kin_dyn/casadi_kin_dyn.h>
+
+#include <casadi/casadi.hpp>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/embed.h>
@@ -9,14 +12,17 @@
 namespace py = pybind11;
 using namespace casadi_kin_dyn;
 
-auto make_deserialized(std::string (CasadiKinDyn::* mem_fn)(void))
+using Ref = CasadiKinDyn::ReferenceFrame;
+
+template <typename... Args>
+auto make_deserialized(casadi::Function (CasadiKinDyn::* mem_fn)(Args... args))
 {
 
     // make lambda to create deserialized function
-    auto deserialized = [mem_fn](CasadiKinDyn& self)
+    auto deserialized = [mem_fn](CasadiKinDyn& self, Args... args)
     {
         // call member function
-        auto fstr = (self.*mem_fn)();
+        auto fn = (self.*mem_fn)(args...);
 
 #if PYBIND11_VERSION_MINOR > 6
         auto cs = py::module_::import("casadi");
@@ -25,14 +31,14 @@ auto make_deserialized(std::string (CasadiKinDyn::* mem_fn)(void))
 #endif
         auto Function = cs.attr("Function");
         auto deserialize = Function.attr("deserialize");
-        return deserialize(fstr);
+        return deserialize(fn.serialize());
     };
 
     return deserialized;
 }
 
 PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
-    
+
     py::class_<CasadiKinDyn> casadikindyn(m, "CasadiKinDyn");
 
     casadikindyn.def(py::init<std::string, bool, std::map<std::string, double>>(),
@@ -47,18 +53,30 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("q_min", &CasadiKinDyn::q_min)
             .def("q_max", &CasadiKinDyn::q_max)
             .def("joint_names", &CasadiKinDyn::joint_names)
-            .def("rnea", &CasadiKinDyn::rnea)
-            .def("aba", make_deserialized(&CasadiKinDyn::aba))
-            .def("crba", &CasadiKinDyn::crba)
-            .def("ccrba", &CasadiKinDyn::ccrba)
-            .def("computeCentroidalDynamics", &CasadiKinDyn::computeCentroidalDynamics)
-            .def("fk", &CasadiKinDyn::fk)
-            .def("centerOfMass", &CasadiKinDyn::centerOfMass)
-            .def("jacobian", &CasadiKinDyn::jacobian)
-            .def("frameVelocity", &CasadiKinDyn::frameVelocity)
-            .def("frameAcceleration", &CasadiKinDyn::frameAcceleration)
-            .def("kineticEnergy", &CasadiKinDyn::kineticEnergy)
-            .def("potentialEnergy", &CasadiKinDyn::potentialEnergy)
+            .def("rnea",
+                 make_deserialized(&CasadiKinDyn::rnea))
+            .def("aba",
+                 make_deserialized(&CasadiKinDyn::aba))
+            .def("crba",
+                 make_deserialized(&CasadiKinDyn::crba))
+            .def("ccrba",
+                 make_deserialized(&CasadiKinDyn::ccrba))
+            .def("computeCentroidalDynamics",
+                 make_deserialized(&CasadiKinDyn::computeCentroidalDynamics))
+            .def("fk",
+                 make_deserialized<std::string>(&CasadiKinDyn::fk))
+            .def("centerOfMass",
+                 make_deserialized(&CasadiKinDyn::centerOfMass))
+            .def("jacobian",
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::jacobian))
+            .def("frameVelocity",
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::frameVelocity))
+            .def("frameAcceleration",
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::frameAcceleration))
+            .def("kineticEnergy",
+                 make_deserialized(&CasadiKinDyn::kineticEnergy))
+            .def("potentialEnergy",
+                 make_deserialized(&CasadiKinDyn::potentialEnergy))
             .def("mass", &CasadiKinDyn::mass)
             ;
 
@@ -67,7 +85,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
         .value("WORLD", CasadiKinDyn::ReferenceFrame::WORLD)
         .value("LOCAL_WORLD_ALIGNED", CasadiKinDyn::ReferenceFrame::LOCAL_WORLD_ALIGNED).export_values();
 
-    
+
 }
 
 

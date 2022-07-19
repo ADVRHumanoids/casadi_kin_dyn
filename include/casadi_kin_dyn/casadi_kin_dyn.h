@@ -5,7 +5,13 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <any>
+
 #include <Eigen/Dense>
+
+namespace casadi {
+class Function;
+}
 
 namespace casadi_kin_dyn {
 
@@ -13,14 +19,17 @@ class CasadiKinDyn
 {
 
 public:
+
+    typedef std::shared_ptr<CasadiKinDyn> Ptr;
+
     enum ReferenceFrame
     {
-      WORLD = 0, //This is spatial in world frame
-      LOCAL = 1, //This is spatial in local frame
-      LOCAL_WORLD_ALIGNED = 2 //This is classical in world frame
+        WORLD = 0, //This is spatial in world frame
+        LOCAL = 1, //This is spatial in local frame
+        LOCAL_WORLD_ALIGNED = 2 //This is classical in world frame
     };
 
-    CasadiKinDyn(std::string urdf_string, 
+    CasadiKinDyn(std::string urdf_string,
                  bool verbose = false,
                  std::map<std::string, double> fixed_joints = std::map<std::string, double>{});
 
@@ -31,31 +40,31 @@ public:
 
     Eigen::VectorXd mapToV(std::map<std::string, double> jmap);
 
-    std::string integrate();
+    casadi::Function integrate();
 
-    std::string rnea();
-    
-    std::string computeCentroidalDynamics();
+    casadi::Function rnea();
 
-    std::string ccrba();
+    casadi::Function computeCentroidalDynamics();
 
-    std::string crba();
+    casadi::Function ccrba();
 
-    std::string aba();
+    casadi::Function crba();
 
-    std::string fk(std::string link_name);
-    
-    std::string centerOfMass();
+    casadi::Function aba();
 
-    std::string jacobian(std::string link_name, ReferenceFrame ref);
-    
-    std::string frameVelocity(std::string link_name, ReferenceFrame ref);
+    casadi::Function fk(std::string link_name);
 
-    std::string frameAcceleration(std::string link_name, ReferenceFrame ref);
+    casadi::Function centerOfMass();
 
-    std::string kineticEnergy();
+    casadi::Function jacobian(std::string link_name, ReferenceFrame ref);
 
-    std::string potentialEnergy();
+    casadi::Function frameVelocity(std::string link_name, ReferenceFrame ref);
+
+    casadi::Function frameAcceleration(std::string link_name, ReferenceFrame ref);
+
+    casadi::Function kineticEnergy();
+
+    casadi::Function potentialEnergy();
 
     std::vector<double> q_min() const;
 
@@ -64,6 +73,10 @@ public:
     std::vector<std::string> joint_names() const;
 
     double mass() const;
+
+    std::string urdf() const;
+
+    std::any modelHandle() const;
 
     ~CasadiKinDyn();
 
