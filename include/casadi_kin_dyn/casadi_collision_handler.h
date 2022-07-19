@@ -19,6 +19,8 @@ public:
     CasadiCollisionHandler(CasadiKinDyn::Ptr kd,
                            std::string srdf_string);
 
+    CasadiKinDyn::Ptr kd();
+
     void addShape(std::string name,
                   std::string type,
                   ShapeParams params);

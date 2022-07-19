@@ -9,7 +9,7 @@ int main()
 
     std::string urdf;
     {
-        std::fstream fs("/home/arturo/code/robots_ws/src/iit-teleop-ros-pkg/teleop_urdf/urdf/teleop_capsules.rviz");
+        std::fstream fs("/home/arturo/code/robot_ws/src/iit-teleop-ros-pkg/teleop_urdf/urdf/teleop_capsules.rviz");
         std::ostringstream os;
         os << fs.rdbuf();
         urdf = os.str();
@@ -17,7 +17,7 @@ int main()
 
     std::string srdf;
     {
-        std::fstream fs("/home/arturo/code/robots_ws/src/iit-teleop-ros-pkg/teleop_srdf/srdf/teleop_capsules.srdf");
+        std::fstream fs("/home/arturo/code/robot_ws/src/iit-teleop-ros-pkg/teleop_srdf/srdf/teleop_capsules.srdf");
         std::ostringstream os;
         os << fs.rdbuf();
         srdf = os.str();
@@ -66,9 +66,16 @@ int main()
         Jfd.col(i) = (d2 - d1)/1e-6;
     }
 
+    ch.distanceJacobian(q, J);
+
     std::cout << "J error is " << (J - Jfd).lpNorm<Eigen::Infinity>() << "\n";
 
     std::cout << "J   = \n" << J.format(3) << "\n\n";
     std::cout << "Jfd = \n" << Jfd.format(3) << "\n\n";
-    std::cout << "Je  = \n" << ((J - Jfd)).format(3) << "\n\n";
+    std::cout << "Je  = \n" << ((J - Jfd).array() / (0.001 + Jfd.array())).format(3) << "\n\n";
+
+    for(int k = 0; k < d.size(); k++)
+    {
+        std::cout << k << " " << (J - Jfd).row(k).norm() << "\n";
+    }
 }

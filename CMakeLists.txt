@@ -54,6 +54,9 @@ add_executable(letsee
 
 target_link_libraries(letsee ${LIBRARY_TARGET_NAME})
 
+# casadi wrapper
+add_subdirectory(src/casadi_wrapper)
+
 # Specify installation targets, typology and destination folders.
 include(GNUInstallDirs)
 install(TARGETS  ${LIBRARY_TARGET_NAME}

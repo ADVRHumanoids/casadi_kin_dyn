@@ -15,6 +15,9 @@ namespace pin = pinocchio;
 
 using namespace casadi_kin_dyn;
 
+casadi_kin_dyn::CasadiCollisionHandler * __collision_handler_ptr = nullptr;
+
+
 class CasadiCollisionHandler::Impl
 {
 
@@ -40,6 +43,8 @@ public:
 
     casadi::Function getDistanceFunction();
 
+    CasadiKinDyn::Ptr kd;
+
 private:
 
     pin::Model _mdl;
@@ -47,12 +52,22 @@ private:
     pin::GeometryModel _geom_mdl;
     pin::GeometryData _geom_data;
 
+    Eigen::MatrixXd J_1, J_2, J_12;
+    std::vector<Eigen::MatrixXd> _joint_J;
+
 };
 
 CasadiCollisionHandler::CasadiCollisionHandler(CasadiKinDyn::Ptr kd,
                                                std::string srdf_string)
 {
     _impl = std::make_unique<Impl>(kd, srdf_string);
+
+    __collision_handler_ptr = this;
+}
+
+CasadiKinDyn::Ptr CasadiCollisionHandler::kd()
+{
+    return impl().kd;
 }
 
 void CasadiCollisionHandler::addShape(std::string name,
@@ -60,6 +75,11 @@ void CasadiCollisionHandler::addShape(std::string name,
                                       CasadiCollisionHandler::ShapeParams params)
 {
     return impl().addShape(name, type, params);
+}
+
+casadi::Function CasadiCollisionHandler::getDistanceFunction()
+{
+    return impl().getDistanceFunction();
 }
 
 size_t CasadiCollisionHandler::numPairs() const
@@ -95,12 +115,13 @@ const CasadiCollisionHandler::Impl &CasadiCollisionHandler::impl() const
 }
 
 
-CasadiCollisionHandler::Impl::Impl(CasadiKinDyn::Ptr kd,
+CasadiCollisionHandler::Impl::Impl(CasadiKinDyn::Ptr _kd,
                                    std::string srdf_string):
-    _mdl(std::any_cast<pin::Model>(kd->modelHandle())),
-    _data(_mdl)
+    _mdl(std::any_cast<pin::Model>(_kd->modelHandle())),
+    _data(_mdl),
+    kd(_kd)
 {
-    std::istringstream urdf_stream(kd->urdf());
+    std::istringstream urdf_stream(_kd->urdf());
 
     _geom_mdl = pin::urdf::buildGeom(_mdl,
                                      urdf_stream,
@@ -112,6 +133,9 @@ CasadiCollisionHandler::Impl::Impl(CasadiKinDyn::Ptr kd,
     pin::srdf::removeCollisionPairsFromXML(_mdl, _geom_mdl, srdf_string);
 
     _geom_data = pin::GeometryData(_geom_mdl);
+
+    _joint_J.assign(_mdl.njoints,
+                    Eigen::MatrixXd::Zero(6, _mdl.nv));
 }
 
 size_t CasadiCollisionHandler::Impl::numPairs() const
@@ -148,12 +172,6 @@ bool CasadiCollisionHandler::Impl::distance(Eigen::Ref<const Eigen::VectorXd> q,
         auto name_1 = _geom_mdl.geometryObjects[cp.first].name;
         auto name_2 = _geom_mdl.geometryObjects[cp.second].name;
 
-        std::cout << name_1 << " vs " << name_2 << ": \n" <<
-                     "  d  = " << dr.min_distance << "\n" <<
-                     "  w1 = " << dr.nearest_points[0].transpose().format(3) << "\n" <<
-                     "  w2 = " << dr.nearest_points[1].transpose().format(3) << "\n" <<
-                     "  n  = " << dr.normal.transpose().format(3) << "\n\n";
-
         d[k] = dr.min_distance;
     }
 
@@ -184,7 +202,16 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
     // note: assume distance has been called with this q vector
     pin::computeJointJacobians(_mdl, _data);
 
-    Eigen::MatrixXd J_1, J_2, J_12;
+    for(size_t i = 0; i <_mdl.njoints; i++)
+    {
+        _joint_J[i].setZero(6, _mdl.nv);
+
+        pin::getJointJacobian(_mdl,
+                              _data,
+                              i,
+                              pin::ReferenceFrame::LOCAL_WORLD_ALIGNED,
+                              _joint_J[i]);
+    }
 
     for(size_t k = 0; k < _geom_mdl.collisionPairs.size(); ++k)
     {
@@ -204,20 +231,18 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
 
         if(joint_1_id > 0)
         {
-            J_1.setZero(6, _mdl.nv);
-
-            pin::getJointJacobian(_mdl,
-                                  _data,
-                                  joint_1_id,
-                                  pin::ReferenceFrame::LOCAL_WORLD_ALIGNED,
-                                  J_1);
-
-            // geom w.r.t. joint frame
-            pin::SE3 j_T_geom = go_1.placement;
+            // joint 1 jacobian
+            J_1 = _joint_J[joint_1_id];
 
             // witness point w.r.t. world
+            Eigen::Vector3d w1 = dr.nearest_points[0];
 
-            pin::details::translateJointJacobian(go_1.placement,
+            // translation
+            pin::SE3 J1_transl;
+            J1_transl.setIdentity();
+            J1_transl.translation() = (w1 - _data.oMi[joint_1_id].translation());
+
+            pin::details::translateJointJacobian(J1_transl,
                                                  J_1, J_1);
 
             J_12 = -J_1.topRows<3>();
@@ -225,15 +250,18 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
 
         if(joint_2_id > 0)
         {
-            J_2.setZero(6, _mdl.nv);
+            // joint 2 jacobian
+            J_2 = _joint_J[joint_2_id];
 
-            pin::getJointJacobian(_mdl,
-                                  _data,
-                                  joint_2_id,
-                                  pin::ReferenceFrame::LOCAL_WORLD_ALIGNED,
-                                  J_2);
+            // witness point w.r.t. world
+            Eigen::Vector3d w2 = dr.nearest_points[1];
 
-            pin::details::translateJointJacobian(go_2.placement,
+            // translation
+            pin::SE3 J2_transl;
+            J2_transl.setIdentity();
+            J2_transl.translation() = (w2 - _data.oMi[joint_2_id].translation());
+
+            pin::details::translateJointJacobian(J2_transl,
                                                  J_2, J_2);
 
             J_12 += J_2.topRows<3>();
@@ -247,7 +275,7 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
 
     auto dur_sec = std::chrono::duration<double>(toc - tic);
 
-    std::cout << _geom_mdl.collisionPairs.size() << " collisions jacobian computed in " <<
+    std::cout << _geom_mdl.collisionPairs.size() << " distance jacobian computed in " <<
                  dur_sec.count()*1e6 << " us \n";
 
     return true;
@@ -309,6 +337,8 @@ void CasadiCollisionHandler::Impl::addShape(std::string name,
                 geom,
                 placement);
 
+    go.meshPath = type;
+
     size_t id = _geom_mdl.addGeometryObject(go);
 
     for(size_t k = 0; k < id; k++)
@@ -326,5 +356,6 @@ void CasadiCollisionHandler::Impl::addShape(std::string name,
 
 casadi::Function CasadiCollisionHandler::Impl::getDistanceFunction()
 {
-
+    return casadi::external("collision_distance",
+                            "libcasadi_compute_distance.so");
 }
