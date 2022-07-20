@@ -89,8 +89,6 @@ private:
     casadi::SX _q, _qdot, _qddot, _tau;
     std::vector<double> _q_min, _q_max;
 
-
-
 };
 
 CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
@@ -538,8 +536,13 @@ CasadiKinDyn::CasadiKinDyn(std::string urdf_string,
                            std::map<std::string, double> fixed_joints)
 {
     auto urdf = urdf::parseURDF(urdf_string);
-    _impl.reset(new Impl(urdf, verbose, fixed_joints));
+    _impl= std::make_unique<Impl>(urdf, verbose, fixed_joints);
     _impl->urdf = urdf_string;
+}
+
+CasadiKinDyn::CasadiKinDyn(const CasadiKinDyn &other)
+{
+    _impl = std::make_unique<Impl>(*other._impl);
 }
 
 int CasadiKinDyn::nq() const

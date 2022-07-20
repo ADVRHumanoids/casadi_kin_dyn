@@ -19,6 +19,8 @@ public:
     CasadiCollisionHandler(CasadiKinDyn::Ptr kd,
                            std::string srdf_string);
 
+    CasadiCollisionHandler(const CasadiCollisionHandler&);
+
     CasadiKinDyn::Ptr kd();
 
     void addShape(std::string name,
@@ -37,6 +39,7 @@ public:
 
     bool distanceHessian(Eigen::Ref<const Eigen::VectorXd> q,
                          Eigen::Ref<Eigen::MatrixXd> H);
+
 
     ~CasadiCollisionHandler();
 

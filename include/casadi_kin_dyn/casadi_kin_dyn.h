@@ -33,6 +33,8 @@ public:
                  bool verbose = false,
                  std::map<std::string, double> fixed_joints = std::map<std::string, double>{});
 
+    CasadiKinDyn(const CasadiKinDyn& other);
+
     int nq() const;
     int nv() const;
 

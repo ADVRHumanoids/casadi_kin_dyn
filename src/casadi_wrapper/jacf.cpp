@@ -44,12 +44,17 @@
 #endif
 #endif
 
+namespace casadi_kin_dyn
+{
+    extern CasadiCollisionHandler* get_collision_handler();
+}
+
+using namespace casadi_kin_dyn;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern casadi_kin_dyn::CasadiCollisionHandler * __collision_handler_ptr;
 
 static casadi_int jac_collision_distance_s_in_0[3] = {-1, 1, 1};
 static casadi_int jac_collision_distance_s_in_1[3] = {-1, 1, 1};
@@ -63,7 +68,7 @@ static int casadi_f0(const casadi_real** arg,
                      casadi_real* w,
                      int mem) {
 
-    auto ch = __collision_handler_ptr;
+    auto ch = get_collision_handler();
 
     bool ret = ch->distanceJacobian(
                 Eigen::VectorXd::Map(arg[0], ch->kd()->nq()),
@@ -128,8 +133,10 @@ CASADI_SYMBOL_EXPORT const char* jac_collision_distance_name_out(casadi_int i){
 
 CASADI_SYMBOL_EXPORT const casadi_int* jac_collision_distance_sparsity_in(casadi_int i) {
 
-    jac_collision_distance_s_in_0[0] = __collision_handler_ptr->kd()->nq();
-    jac_collision_distance_s_in_1[0] = __collision_handler_ptr->numPairs();
+    auto ch = get_collision_handler();
+
+    jac_collision_distance_s_in_0[0] = ch->kd()->nq();
+    jac_collision_distance_s_in_1[0] = ch->numPairs();
 
     switch (i) {
     case 0: return jac_collision_distance_s_in_0;
@@ -140,8 +147,10 @@ CASADI_SYMBOL_EXPORT const casadi_int* jac_collision_distance_sparsity_in(casadi
 
 CASADI_SYMBOL_EXPORT const casadi_int* jac_collision_distance_sparsity_out(casadi_int i) {
 
-    jac_collision_distance_s_out[0] = __collision_handler_ptr->numPairs();
-    jac_collision_distance_s_out[1] = __collision_handler_ptr->kd()->nv();
+    auto ch = get_collision_handler();
+
+    jac_collision_distance_s_out[0] = ch->numPairs();
+    jac_collision_distance_s_out[1] = ch->kd()->nv();
 
     switch (i) {
     case 0: return jac_collision_distance_s_out;

@@ -15,8 +15,29 @@ namespace pin = pinocchio;
 
 using namespace casadi_kin_dyn;
 
-casadi_kin_dyn::CasadiCollisionHandler * __collision_handler_ptr = nullptr;
+static CasadiCollisionHandler * main_collision_handler = nullptr;
 
+namespace casadi_kin_dyn {
+
+CasadiCollisionHandler * get_collision_handler()
+{
+    thread_local CasadiCollisionHandler * ch = nullptr;
+
+    if(!main_collision_handler)
+    {
+        throw std::runtime_error("No CasadiCollisionHandler instance is alive");
+    }
+
+    if(!ch)
+    {
+        // note: we deliberately leak memory
+        ch = new CasadiCollisionHandler(*main_collision_handler);
+    }
+
+    return ch;
+}
+
+}
 
 class CasadiCollisionHandler::Impl
 {
@@ -45,6 +66,8 @@ public:
 
     CasadiKinDyn::Ptr kd;
 
+    ~Impl();
+
 private:
 
     Eigen::VectorXd _last_q;
@@ -64,7 +87,13 @@ CasadiCollisionHandler::CasadiCollisionHandler(CasadiKinDyn::Ptr kd,
 {
     _impl = std::make_unique<Impl>(kd, srdf_string);
 
-    __collision_handler_ptr = this;
+    main_collision_handler = this;
+}
+
+CasadiCollisionHandler::CasadiCollisionHandler(const CasadiCollisionHandler & other)
+{
+    _impl = std::make_unique<Impl>(*other._impl);
+    _impl->kd = std::make_shared<CasadiKinDyn>(*_impl->kd);
 }
 
 CasadiKinDyn::Ptr CasadiCollisionHandler::kd()
@@ -140,6 +169,7 @@ CasadiCollisionHandler::Impl::Impl(CasadiKinDyn::Ptr _kd,
                     Eigen::MatrixXd::Zero(6, _mdl.nv));
 
 }
+
 
 size_t CasadiCollisionHandler::Impl::numPairs() const
 {
@@ -273,6 +303,22 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
 
     auto dur_sec = std::chrono::duration<double>(toc - tic);
 
+    if(!J.allFinite() || J.hasNaN())
+    {
+        std::cout << "bad values in distance jacobian: \n";
+
+        std::cout << "q = " << q.transpose().format(3) << "\n";
+
+        for(size_t k = 0; k < _geom_mdl.collisionPairs.size(); ++k)
+        {
+            if(!J.row(k).allFinite() || J.row(k).hasNaN())
+            {
+                std::cout << "at row " << k  << ": " <<
+                             J.row(k).format(3) << "\n";
+            }
+        }
+    }
+
     return true;
 }
 
@@ -353,4 +399,9 @@ casadi::Function CasadiCollisionHandler::Impl::getDistanceFunction()
 {
     return casadi::external("collision_distance",
                             "libcasadi_compute_distance.so");
+}
+
+CasadiCollisionHandler::Impl::~Impl()
+{
+    main_collision_handler = nullptr;
 }
