@@ -55,7 +55,6 @@ private:
     pin::GeometryModel _geom_mdl;
     pin::GeometryData _geom_data;
 
-    Eigen::MatrixXd J_1, J_2, J_12;
     std::vector<Eigen::MatrixXd> _joint_J;
 
 };
@@ -234,47 +233,39 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
         size_t joint_1_id = _geom_mdl.geometryObjects[cp.first].parentJoint;
         size_t joint_2_id = _geom_mdl.geometryObjects[cp.second].parentJoint;
 
-        J_12.setZero(3, _mdl.nv);
-
         if(joint_1_id > 0)
         {
             // joint 1 jacobian
-            J_1 = _joint_J[joint_1_id];
+            const auto& J_1 = _joint_J[joint_1_id];
 
             // witness point w.r.t. world
             Eigen::Vector3d w1 = dr.nearest_points[0];
 
             // translation
-            pin::SE3 J1_transl;
-            J1_transl.setIdentity();
-            J1_transl.translation() = (w1 - _data.oMi[joint_1_id].translation());
+            Eigen::Vector3d r = w1 - _data.oMi[joint_1_id].translation();
 
-            pin::details::translateJointJacobian(J1_transl,
-                                                 J_1, J_1);
-
-            J_12 = -J_1.topRows<3>();
+            J.row(k) = -dr.normal.transpose()*J_1.topRows<3>();
+            J.row(k) -= (r.cross(dr.normal)).transpose()*J_1.bottomRows<3>();
+        }
+        else
+        {
+            J.row(k).setZero();
         }
 
         if(joint_2_id > 0)
         {
             // joint 2 jacobian
-            J_2 = _joint_J[joint_2_id];
+            const auto & J_2 = _joint_J[joint_2_id];
 
             // witness point w.r.t. world
             Eigen::Vector3d w2 = dr.nearest_points[1];
 
             // translation
-            pin::SE3 J2_transl;
-            J2_transl.setIdentity();
-            J2_transl.translation() = (w2 - _data.oMi[joint_2_id].translation());
+            Eigen::Vector3d r = w2 - _data.oMi[joint_2_id].translation();
 
-            pin::details::translateJointJacobian(J2_transl,
-                                                 J_2, J_2);
-
-            J_12 += J_2.topRows<3>();
+            J.row(k) += dr.normal.transpose()*J_2.topRows<3>();
+            J.row(k) += (r.cross(dr.normal)).transpose()*J_2.bottomRows<3>();
         }
-
-        J.row(k) = dr.normal.transpose() * J_12;
 
     }
 
