@@ -47,6 +47,9 @@ public:
 
 private:
 
+    Eigen::VectorXd _last_q;
+    Eigen::VectorXd _d_cached;
+
     pin::Model _mdl;
     pin::Data _data;
     pin::GeometryModel _geom_mdl;
@@ -136,6 +139,7 @@ CasadiCollisionHandler::Impl::Impl(CasadiKinDyn::Ptr _kd,
 
     _joint_J.assign(_mdl.njoints,
                     Eigen::MatrixXd::Zero(6, _mdl.nv));
+
 }
 
 size_t CasadiCollisionHandler::Impl::numPairs() const
@@ -149,21 +153,26 @@ bool CasadiCollisionHandler::Impl::distance(Eigen::Ref<const Eigen::VectorXd> q,
     if(q.size() != _mdl.nq ||
             d.size() != _geom_mdl.collisionPairs.size())
     {
+        std::cerr << __func__ << ": wrong input size \n";
         return false;
     }
 
-    auto tic = std::chrono::high_resolution_clock::now();
+    if(true || _last_q.size() == 0 || !_last_q.isApprox(q))
+    {
 
-    pin::computeDistances(_mdl, _data,
-                          _geom_mdl, _geom_data,
-                          q);
+        auto tic = std::chrono::high_resolution_clock::now();
 
-    auto toc = std::chrono::high_resolution_clock::now();
+        pin::computeDistances(_mdl, _data,
+                              _geom_mdl, _geom_data,
+                              q);
 
-    auto dur_sec = std::chrono::duration<double>(toc - tic);
+        _last_q = q;
 
-    std::cout << _geom_mdl.collisionPairs.size() << " distances computed in " <<
-                 dur_sec.count()*1e6 << " us \n";
+        auto toc = std::chrono::high_resolution_clock::now();
+
+        auto dur_sec = std::chrono::duration<double>(toc - tic);
+
+    }
 
     for(size_t k = 0; k < _geom_mdl.collisionPairs.size(); ++k)
     {
@@ -181,25 +190,23 @@ bool CasadiCollisionHandler::Impl::distance(Eigen::Ref<const Eigen::VectorXd> q,
 bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::VectorXd> q,
                                                     Eigen::Ref<Eigen::MatrixXd> J)
 {
-    // d = |c2 - c1| - r2 - r1
-    // n = (c2 - c1)/|c2 - c1|
-    // w1 = c1 + n*r1
-    // w2 = c2 - n*r2
-    // d = |c2 -n*r2 - c1 - n*r1| = |w2 - w1|
-
-    // w1_loc = n*r1
-    // dn/dc2 =
-
     if(q.size() != _mdl.nq ||
             J.rows() != _geom_mdl.collisionPairs.size() ||
             J.cols() != _mdl.nv)
     {
+        std::cerr << __func__ << ": wrong input size \n";
+        return false;
+    }
+
+    _d_cached.setZero(numPairs());
+    if(!distance(q, _d_cached))
+    {
+        std::cerr << __func__ << ": distance computation failed \n";
         return false;
     }
 
     auto tic = std::chrono::high_resolution_clock::now();
 
-    // note: assume distance has been called with this q vector
     pin::computeJointJacobians(_mdl, _data);
 
     for(size_t i = 0; i <_mdl.njoints; i++)
@@ -274,9 +281,6 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
     auto toc = std::chrono::high_resolution_clock::now();
 
     auto dur_sec = std::chrono::duration<double>(toc - tic);
-
-    std::cout << _geom_mdl.collisionPairs.size() << " distance jacobian computed in " <<
-                 dur_sec.count()*1e6 << " us \n";
 
     return true;
 }

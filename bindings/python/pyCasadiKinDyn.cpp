@@ -94,7 +94,10 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def(py::init<CasadiKinDyn::Ptr, std::string>(),
                     py::arg("kd"), py::arg("srdf"))
             .def("getDistanceFunction",
-                 make_deserialized(&CasadiCollisionHandler::getDistanceFunction));
+                 make_deserialized(&CasadiCollisionHandler::getDistanceFunction))
+            .def("addShape", &CasadiCollisionHandler::addShape,
+                 py::arg("name"), py::arg("type"), py::arg("params"))
+            ;
 
 
 }
