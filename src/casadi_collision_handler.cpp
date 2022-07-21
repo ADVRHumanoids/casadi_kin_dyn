@@ -186,7 +186,7 @@ bool CasadiCollisionHandler::Impl::distance(Eigen::Ref<const Eigen::VectorXd> q,
         return false;
     }
 
-    if(true || _last_q.size() == 0 || !_last_q.isApprox(q))
+    if(_last_q.size() == 0 || (_last_q.cwiseNotEqual(q)).any())
     {
 
         auto tic = std::chrono::high_resolution_clock::now();
