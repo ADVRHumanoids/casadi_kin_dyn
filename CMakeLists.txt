@@ -33,8 +33,9 @@ add_library(${LIBRARY_TARGET_NAME} SHARED
     ${${LIBRARY_TARGET_NAME}_SRC})
 
 target_link_libraries(${LIBRARY_TARGET_NAME}
-    PRIVATE
+    PUBLIC
     casadi
+    PRIVATE
     ${PINOCCHIO_LIBRARIES}
     ${urdfdom_LIBRARIES}
     ${Boost_LIBRARIES})
