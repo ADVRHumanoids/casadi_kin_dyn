@@ -57,6 +57,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("joint_names", &CasadiKinDyn::joint_names)
             .def("rnea",
                  make_deserialized(&CasadiKinDyn::rnea))
+            .def("qdot",
+                 make_deserialized(&CasadiKinDyn::qdot))
             .def("integrate",
                  make_deserialized(&CasadiKinDyn::integrate))
             .def("aba",

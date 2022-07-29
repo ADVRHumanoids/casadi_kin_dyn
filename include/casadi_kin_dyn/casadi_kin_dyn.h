@@ -44,6 +44,8 @@ public:
 
     casadi::Function integrate();
 
+    casadi::Function qdot();
+
     casadi::Function rnea();
 
     casadi::Function computeCentroidalDynamics();

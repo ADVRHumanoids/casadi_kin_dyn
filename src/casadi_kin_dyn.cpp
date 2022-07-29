@@ -46,6 +46,8 @@ public:
 
     casadi::Function integrate();
 
+    casadi::Function qdot();
+
     casadi::Function rnea();
 
     casadi::Function computeCentroidalDynamics();
@@ -88,12 +90,14 @@ private:
     pinocchio::Model _model_dbl;
     casadi::SX _q, _qdot, _qddot, _tau;
     std::vector<double> _q_min, _q_max;
+    urdf::ModelInterfaceSharedPtr _urdf;
 
 };
 
 CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
                          bool verbose,
-                         std::map<std::string, double> fixed_joints)
+                         std::map<std::string, double> fixed_joints):
+    _urdf(urdf_model)
 {
     // parse pinocchio model from urdf
     pinocchio::Model model_full;
@@ -113,7 +117,6 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
         size_t jidx = model_full.getJointId(jname);
         size_t qidx = model_full.idx_qs[jidx];
         size_t nq = model_full.nqs[jidx];
-
         if(nq != 1)
         {
             throw std::invalid_argument("only 1-dof fixed joints are supported (" + jname + ")");
@@ -232,6 +235,70 @@ casadi::Function CasadiKinDyn::Impl::integrate()
                                {"q", "v"}, {"qnext"});
 
     return integrate;
+}
+
+casadi::Function CasadiKinDyn::Impl::qdot()
+{
+    auto model = _model_dbl.cast<Scalar>();
+    Eigen::Matrix<Scalar, -1, 1> qdot(model.nq);
+
+    auto qeig = cas_to_eig(_q);
+    auto veig = cas_to_eig(_qdot);
+
+    for(int i = 0; i < model.njoints; i++)
+    {
+        int nq = model.nqs[i];
+
+        if(nq == 0)
+        {
+            continue;
+        }
+
+        auto jname = model.names[i];
+        auto uj = _urdf->getJoint(jname);
+        int iv = model.idx_vs[i];
+        int iq = model.idx_qs[i];
+
+        if(nq == 7)
+        {
+            Eigen::Quaternion<Scalar> quat(
+                        qeig[iq+6],
+                        qeig[iq+3],
+                        qeig[iq+4],
+                        qeig[iq+5]);
+
+            Eigen::Quaternion<Scalar> qomega(
+                        0,
+                        veig[iv+3],
+                        veig[iv+4],
+                        veig[iv+5]);
+
+            Eigen::Matrix<Scalar, 3, 1> pdot = quat * veig.segment<3>(iv);
+
+            Eigen::Matrix<Scalar, 4, 1> quat_dot = 0.5 * (quat * qomega).coeffs();
+
+            qdot.segment<3>(iq) = pdot;
+
+            qdot.segment<4>(iq+3) = quat_dot;
+
+        }
+        else if(nq == 2)
+        {
+            qdot[iq] = -veig[iv]*qeig[iq+1];
+            qdot[iq+1] = veig[iv]*qeig[iq];
+        }
+        else if(nq == 1)
+        {
+            qdot[iq] = veig[iv];
+        }
+        else
+        {
+            throw std::runtime_error("invalid nq: " + std::to_string(nq));
+        }
+    }
+
+    return casadi::Function("qdot", {_q, _qdot}, {eig_to_cas(qdot)},
+                            {"q", "v"}, {"qdot"});
 }
 
 int CasadiKinDyn::Impl::nq() const
@@ -568,6 +635,11 @@ Eigen::VectorXd CasadiKinDyn::mapToV(std::map<std::string, double> jmap)
 casadi::Function CasadiKinDyn::integrate()
 {
     return impl().integrate();
+}
+
+casadi::Function CasadiKinDyn::qdot()
+{
+    return impl().qdot();
 }
 
 casadi::Function CasadiKinDyn::rnea()
