@@ -228,8 +228,8 @@ casadi::Function CasadiKinDyn::Impl::integrate()
     auto qnext = pinocchio::integrate(model, cas_to_eig(_q), cas_to_eig(_qdot));
 
     casadi::Function integrate("integrate",
-                                     {_q, _qdot}, {eig_to_cas(qnext)},
-                                     {"q", "v"}, {"qnext"});
+                               {_q, _qdot}, {eig_to_cas(qnext)},
+                               {"q", "v"}, {"qnext"});
 
     return integrate;
 }
