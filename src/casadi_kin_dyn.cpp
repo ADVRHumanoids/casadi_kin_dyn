@@ -48,6 +48,10 @@ public:
 
     casadi::Function qdot();
 
+    void qdot(Eigen::Ref<const Eigen::VectorXd> q,
+              Eigen::Ref<const Eigen::VectorXd> v,
+              Eigen::Ref<Eigen::VectorXd> qdot);
+
     casadi::Function rnea();
 
     casadi::Function computeCentroidalDynamics();
@@ -73,6 +77,14 @@ public:
     casadi::Function aba();
 
     pinocchio::Model model() const;
+
+    int joint_nq(const std::string& jname) const;
+
+    int joint_iq(const std::string& jname) const;
+
+    std::string parentLink(const std::string& jname) const;
+
+    std::string childLink(const std::string& jname) const;
 
     std::string urdf;
 
@@ -301,6 +313,70 @@ casadi::Function CasadiKinDyn::Impl::qdot()
                             {"q", "v"}, {"qdot"});
 }
 
+void CasadiKinDyn::Impl::qdot(Eigen::Ref<const Eigen::VectorXd> qeig,
+                              Eigen::Ref<const Eigen::VectorXd> veig,
+                              Eigen::Ref<Eigen::VectorXd> qdot)
+{
+    auto& model = _model_dbl;
+
+    typedef double Scalar;
+
+    // todo size check
+
+    for(int i = 0; i < model.njoints; i++)
+    {
+        int nq = model.nqs[i];
+
+        if(nq == 0)
+        {
+            continue;
+        }
+
+        auto jname = model.names[i];
+        auto uj = _urdf->getJoint(jname);
+        int iv = model.idx_vs[i];
+        int iq = model.idx_qs[i];
+
+        if(nq == 7)
+        {
+            Eigen::Quaternion<Scalar> quat(
+                        qeig[iq+6],
+                        qeig[iq+3],
+                        qeig[iq+4],
+                        qeig[iq+5]);
+
+            Eigen::Quaternion<Scalar> qomega(
+                        0,
+                        veig[iv+3],
+                        veig[iv+4],
+                        veig[iv+5]);
+
+            Eigen::Matrix<Scalar, 3, 1> pdot = quat * veig.segment<3>(iv);
+
+            Eigen::Matrix<Scalar, 4, 1> quat_dot = 0.5 * (quat * qomega).coeffs();
+
+            qdot.segment<3>(iq) = pdot;
+
+            qdot.segment<4>(iq+3) = quat_dot;
+
+        }
+        else if(nq == 2)
+        {
+            qdot[iq] = -veig[iv]*qeig[iq+1];
+            qdot[iq+1] = veig[iv]*qeig[iq];
+        }
+        else if(nq == 1)
+        {
+            qdot[iq] = veig[iv];
+        }
+        else
+        {
+            throw std::runtime_error("invalid nq: " + std::to_string(nq));
+        }
+    }
+
+}
+
 int CasadiKinDyn::Impl::nq() const
 {
     return _model_dbl.nq;
@@ -363,6 +439,42 @@ pinocchio::Model CasadiKinDyn::Impl::model() const
     return _model_dbl;
 }
 
+int CasadiKinDyn::Impl::joint_nq(const std::string &jname) const
+{
+    size_t jid = _model_dbl.getJointId(jname);
+
+    if(jid >= _model_dbl.njoints)
+    {
+        throw std::invalid_argument("joint '" + jname + "' undefined");
+    }
+
+    return _model_dbl.nqs[jid];
+
+}
+
+
+int CasadiKinDyn::Impl::joint_iq(const std::string &jname) const
+{
+    size_t jid = _model_dbl.getJointId(jname);
+
+    if(jid >= _model_dbl.njoints)
+    {
+        throw std::invalid_argument("joint '" + jname + "' undefined");
+    }
+
+    return _model_dbl.idx_qs[jid];
+
+}
+
+std::string CasadiKinDyn::Impl::parentLink(const std::string &jname) const
+{
+    return _urdf->getJoint(jname)->parent_link_name;
+}
+
+std::string CasadiKinDyn::Impl::childLink(const std::string &jname) const
+{
+    return _urdf->getJoint(jname)->child_link_name;
+}
 
 casadi::Function CasadiKinDyn::Impl::rnea()
 {
@@ -622,6 +734,16 @@ int CasadiKinDyn::nv() const
     return impl().nv();
 }
 
+int CasadiKinDyn::joint_nq(const std::string &jname) const
+{
+    return impl().joint_nq(jname);
+}
+
+int CasadiKinDyn::joint_iq(const std::string &jname) const
+{
+    return impl().joint_iq(jname);
+}
+
 Eigen::VectorXd CasadiKinDyn::mapToQ(std::map<std::string, double> jmap)
 {
     return impl().mapToQ(jmap);
@@ -640,6 +762,13 @@ casadi::Function CasadiKinDyn::integrate()
 casadi::Function CasadiKinDyn::qdot()
 {
     return impl().qdot();
+}
+
+void CasadiKinDyn::qdot(Eigen::Ref<const Eigen::VectorXd> q,
+                        Eigen::Ref<const Eigen::VectorXd> v,
+                        Eigen::Ref<Eigen::VectorXd> qdot)
+{
+    return impl().qdot(q, v, qdot);
 }
 
 casadi::Function CasadiKinDyn::rnea()
@@ -741,6 +870,16 @@ double CasadiKinDyn::mass() const
 std::string CasadiKinDyn::urdf() const
 {
     return impl().urdf;
+}
+
+std::string CasadiKinDyn::parentLink(const std::string &jname) const
+{
+    return impl().parentLink(jname);
+}
+
+std::string CasadiKinDyn::childLink(const std::string &jname) const
+{
+    return impl().childLink(jname);
 }
 
 std::any CasadiKinDyn::modelHandle() const

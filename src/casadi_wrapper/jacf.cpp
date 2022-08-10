@@ -150,7 +150,7 @@ CASADI_SYMBOL_EXPORT const casadi_int* jac_collision_distance_sparsity_out(casad
     auto ch = get_collision_handler();
 
     jac_collision_distance_s_out[0] = ch->numPairs();
-    jac_collision_distance_s_out[1] = ch->kd()->nv();
+    jac_collision_distance_s_out[1] = ch->kd()->nq();
 
     switch (i) {
     case 0: return jac_collision_distance_s_out;

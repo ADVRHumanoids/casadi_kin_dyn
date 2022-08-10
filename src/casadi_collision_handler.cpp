@@ -62,6 +62,8 @@ public:
                   std::string type,
                   ShapeParams params);
 
+    void setCollisionPairs(std::vector<std::pair<std::string, std::string>> pairs);
+
     casadi::Function getDistanceFunction();
 
     CasadiKinDyn::Ptr kd;
@@ -106,6 +108,12 @@ void CasadiCollisionHandler::addShape(std::string name,
                                       CasadiCollisionHandler::ShapeParams params)
 {
     return impl().addShape(name, type, params);
+}
+
+void CasadiCollisionHandler::setCollisionPairs(
+        std::vector<std::pair<std::string, std::string> > pairs)
+{
+    return impl().setCollisionPairs(pairs);
 }
 
 casadi::Function CasadiCollisionHandler::getDistanceFunction()
@@ -249,6 +257,9 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
                               _joint_J[i]);
     }
 
+    Eigen::VectorXd Jrow_v(_mdl.nv);
+    Eigen::VectorXd Jrow_q(_mdl.nq);
+
     for(size_t k = 0; k < _geom_mdl.collisionPairs.size(); ++k)
     {
         const auto& cp = _geom_mdl.collisionPairs[k];
@@ -274,12 +285,12 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
             // translation
             Eigen::Vector3d r = w1 - _data.oMi[joint_1_id].translation();
 
-            J.row(k) = -dr.normal.transpose()*J_1.topRows<3>();
-            J.row(k) -= (r.cross(dr.normal)).transpose()*J_1.bottomRows<3>();
+            Jrow_v = -dr.normal.transpose()*J_1.topRows<3>();
+            Jrow_v -= (r.cross(dr.normal)).transpose()*J_1.bottomRows<3>();
         }
         else
         {
-            J.row(k).setZero();
+            Jrow_v.setZero(_mdl.nv);
         }
 
         if(joint_2_id > 0)
@@ -293,9 +304,12 @@ bool CasadiCollisionHandler::Impl::distanceJacobian(Eigen::Ref<const Eigen::Vect
             // translation
             Eigen::Vector3d r = w2 - _data.oMi[joint_2_id].translation();
 
-            J.row(k) += dr.normal.transpose()*J_2.topRows<3>();
-            J.row(k) += (r.cross(dr.normal)).transpose()*J_2.bottomRows<3>();
+            Jrow_v += dr.normal.transpose()*J_2.topRows<3>();
+            Jrow_v += (r.cross(dr.normal)).transpose()*J_2.bottomRows<3>();
         }
+
+        kd->qdot(q, Jrow_v, Jrow_q);
+        J.row(k) = Jrow_q;
 
     }
 
@@ -337,6 +351,14 @@ void CasadiCollisionHandler::Impl::addShape(std::string name,
         geom.reset(new hpp::fcl::Capsule(
                        params.at("radius")[0],
                    params.at("length")[0])
+                );
+    }
+    else if(type == "box")
+    {
+        geom.reset(new hpp::fcl::Box(
+                       params.at("size")[0],
+                       params.at("size")[1],
+                       params.at("size")[2])
                 );
     }
     else
@@ -393,6 +415,34 @@ void CasadiCollisionHandler::Impl::addShape(std::string name,
     _geom_data = pin::GeometryData(_geom_mdl);
 
 
+}
+
+void CasadiCollisionHandler::Impl::setCollisionPairs(
+        std::vector<std::pair<std::string, std::string> > pairs)
+{
+    _geom_mdl.removeAllCollisionPairs();
+
+    for(auto [p1, p2] : pairs)
+    {
+        size_t i1 = _geom_mdl.getGeometryId(p1);
+        size_t i2 = _geom_mdl.getGeometryId(p2);
+
+        if(i1 == _geom_mdl.geometryObjects.size() ||
+                i2 == _geom_mdl.geometryObjects.size() )
+        {
+            std::ostringstream oss;
+            oss << "requested geometry does not exist; defined names are\n";
+            for(auto go : _geom_mdl.geometryObjects)
+            {
+                oss << " - " << go.name << "\n";
+            }
+            throw std::invalid_argument(oss.str());
+        }
+
+        _geom_mdl.addCollisionPair(pin::CollisionPair(i1, i2));
+    }
+
+    _geom_data = pin::GeometryData(_geom_mdl);
 }
 
 casadi::Function CasadiCollisionHandler::Impl::getDistanceFunction()
