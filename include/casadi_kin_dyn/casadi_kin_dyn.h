@@ -42,6 +42,8 @@ public:
 
     Eigen::VectorXd mapToV(std::map<std::string, double> jmap);
 
+    Eigen::VectorXd getMinimalQ(Eigen::VectorXd q);
+
     casadi::Function integrate();
 
     casadi::Function qdot();

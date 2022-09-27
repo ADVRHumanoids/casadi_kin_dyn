@@ -52,6 +52,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("nv", &CasadiKinDyn::nv)
             .def("mapToQ", &CasadiKinDyn::mapToQ)
             .def("mapToV", &CasadiKinDyn::mapToV)
+            .def("getMinimalQ", &CasadiKinDyn::getMinimalQ)
             .def("q_min", &CasadiKinDyn::q_min)
             .def("q_max", &CasadiKinDyn::q_max)
             .def("joint_names", &CasadiKinDyn::joint_names)

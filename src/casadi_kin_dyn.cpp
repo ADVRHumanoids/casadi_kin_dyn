@@ -44,6 +44,8 @@ public:
 
     Eigen::VectorXd mapToV(std::map<std::string, double> jmap);
 
+    Eigen::VectorXd getMinimalQ(Eigen::VectorXd q);
+
     casadi::Function integrate();
 
     casadi::Function qdot();
@@ -186,12 +188,18 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToQ(std::map<std::string, double> jmap)
         size_t qidx = _model_dbl.idx_qs[jidx];
         size_t nq = _model_dbl.nqs[jidx];
 
-        if(nq != 1)
+        if(nq == 2)
         {
-            throw std::invalid_argument("only 1-dof joints are supported (" + jname + ")");
+            // throw std::invalid_argument("only 1-dof joints are supported (" + jname + ")");
+            joint_pos[qidx] = cos(jpos);
+            joint_pos[qidx+1] = sin(jpos);
+        }
+        else
+        {
+            joint_pos[qidx] = jpos;
         }
 
-        joint_pos[qidx] = jpos;
+
 
     }
 
@@ -223,6 +231,66 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToV(std::map<std::string, double> jmap)
     }
 
     return joint_vel;
+}
+
+Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
+{
+
+    // add guards if q input by user is not of dimension nq()
+    auto model = _model_dbl.cast<Scalar>();
+    int reduced_size = 0;
+
+    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    {
+        int nq = model.nqs[n_joint];
+
+        if(nq==2)
+        {
+            reduced_size++;
+        }
+        else
+        {
+            reduced_size+=nq;
+        }
+    }
+
+    auto q_minimal = Eigen::VectorXd::Zero(reduced_size).eval();
+
+    int i = 0;
+    int j = 0;
+    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    {
+        int nq = model.nqs[n_joint];
+
+        if(nq == 0)
+        {
+            continue;
+        }
+
+        if(nq == 7)
+        {
+            for (int k = 0; k < 7; k++)
+            {
+                q_minimal[j+k] = q[i+k];
+            }
+            j+=6;
+        }
+
+        if(nq == 1)
+        {
+            q_minimal[j] = q[i];
+        }
+
+        if(nq == 2)
+        {
+            q_minimal[j] = atan2(q[i], q[i+1]);
+        }
+        j++;
+        i+=nq;
+    }
+
+    return q_minimal;
+
 }
 
 casadi::Function CasadiKinDyn::Impl::integrate()
@@ -284,8 +352,8 @@ casadi::Function CasadiKinDyn::Impl::qdot()
         }
         else if(nq == 2)
         {
-            qdot[iq] = -veig[iv]*qeig[iq+1];
-            qdot[iq+1] = veig[iv]*qeig[iq];
+            qdot[iq] = -veig[iv]*qeig[iq+1]; // cos
+            qdot[iq+1] = veig[iv]*qeig[iq]; // sin
         }
         else if(nq == 1)
         {
@@ -630,6 +698,11 @@ Eigen::VectorXd CasadiKinDyn::mapToQ(std::map<std::string, double> jmap)
 Eigen::VectorXd CasadiKinDyn::mapToV(std::map<std::string, double> jmap)
 {
     return impl().mapToV(jmap);
+}
+
+Eigen::VectorXd CasadiKinDyn::getMinimalQ(Eigen::VectorXd q)
+{
+    return impl().getMinimalQ(q);
 }
 
 casadi::Function CasadiKinDyn::integrate()
