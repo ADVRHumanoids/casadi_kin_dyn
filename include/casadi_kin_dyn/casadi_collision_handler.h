@@ -27,6 +27,8 @@ public:
                   std::string type,
                   ShapeParams params);
 
+    void setCollisionPairs(std::vector<std::pair<std::string, std::string>> pairs);
+
     casadi::Function getDistanceFunction();
 
     size_t numPairs() const;

@@ -55,6 +55,10 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("getMinimalQ", &CasadiKinDyn::getMinimalQ)
             .def("q_min", &CasadiKinDyn::q_min)
             .def("q_max", &CasadiKinDyn::q_max)
+            .def("joint_iq", &CasadiKinDyn::joint_iq)
+            .def("joint_nq", &CasadiKinDyn::joint_nq)
+            .def("childLink", &CasadiKinDyn::childLink)
+            .def("parentLink", &CasadiKinDyn::parentLink)
             .def("joint_names", &CasadiKinDyn::joint_names)
             .def("rnea",
                  make_deserialized(&CasadiKinDyn::rnea))
@@ -103,6 +107,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
                  make_deserialized(&CasadiCollisionHandler::getDistanceFunction))
             .def("addShape", &CasadiCollisionHandler::addShape,
                  py::arg("name"), py::arg("type"), py::arg("params"))
+            .def("setCollisionPairs", &CasadiCollisionHandler::setCollisionPairs,
+                 py::arg("pairs"))
             ;
 
 
