@@ -364,8 +364,8 @@ casadi::Function CasadiKinDyn::Impl::qdot()
         }
         else if(nq == 2)
         {
-            qdot[iq] = -veig[iv]*qeig[iq+1];
-            qdot[iq+1] = veig[iv]*qeig[iq];
+            qdot[iq] = -veig[iv]*qeig[iq+1]; // cos
+            qdot[iq+1] = veig[iv]*qeig[iq]; // sin
         }
         else if(nq == 1)
         {
