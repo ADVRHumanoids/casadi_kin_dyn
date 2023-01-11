@@ -170,10 +170,9 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
 
 double CasadiKinDyn::Impl::mass() const
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+    pinocchio::DataTpl<Scalar> data(_model);
 
-    Scalar M = pinocchio::computeTotalMass(model, data);
+    Scalar M = pinocchio::computeTotalMass(_model, data);
 
     return double(M);
 
@@ -254,12 +253,11 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToV(std::map<std::string, double> jmap)
 Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 {
     // add guards if q input by user is not of dimension nq()
-    auto model = _model_dbl.cast<Scalar>();
     int reduced_size = 0;
 
-    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    for(int n_joint = 0; n_joint < _model.njoints; n_joint++)
     {
-        int nq = model.nqs[n_joint];
+        int nq = _model.nqs[n_joint];
 
         if(nq==2)
         {
@@ -275,9 +273,9 @@ Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 
     int i = 0;
     int j = 0;
-    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    for(int n_joint = 0; n_joint < _model.njoints; n_joint++)
     {
-        int nq = model.nqs[n_joint];
+        int nq = _model.nqs[n_joint];
 
         if(nq == 0)
         {
@@ -370,37 +368,36 @@ bool CasadiKinDyn::Impl::symbolicLengths()
 
 casadi::Function CasadiKinDyn::Impl::integrate()
 {
-    auto model = _model_dbl.cast<Scalar>();
-    auto qnext = pinocchio::integrate(model, cas_to_eig(_q), cas_to_eig(_qdot));
+    auto qnext = pinocchio::integrate(_model, cas_to_eig(_q), cas_to_eig(_qdot));
 
     casadi::Function integrate("integrate",
                                {_q, _qdot}, {eig_to_cas(qnext)},
                                {"q", "v"}, {"qnext"});
 
     return integrate;
+
 }
 
 casadi::Function CasadiKinDyn::Impl::qdot()
 {
-    auto model = _model_dbl.cast<Scalar>();
     Eigen::Matrix<Scalar, -1, 1> qdot(_model.nq);
 
     auto qeig = cas_to_eig(_q);
     auto veig = cas_to_eig(_qdot);
 
-    for(int i = 0; i < model.njoints; i++)
+    for(int i = 0; i < _model.njoints; i++)
     {
-        int nq = model.nqs[i];
+        int nq = _model.nqs[i];
 
         if(nq == 0)
         {
             continue;
         }
 
-        auto jname = model.names[i];
+        auto jname = _model.names[i];
         auto uj = _urdf->getJoint(jname);
-        int iv = model.idx_vs[i];
-        int iq = model.idx_qs[i];
+        int iv = _model.idx_vs[i];
+        int iq = _model.idx_qs[i];
 
         if(nq == 7)
         {
@@ -520,14 +517,16 @@ int CasadiKinDyn::Impl::nv() const
 
 casadi::Function CasadiKinDyn::Impl::kineticEnergy()
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+    pinocchio::DataTpl<Scalar> data(_model);
 
 
-    Scalar DT = pinocchio::computeKineticEnergy(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+    Scalar DT = pinocchio::computeKineticEnergy(_model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+
+    std::vector<casadi::SX> args;
+    (_params.size1() == 0) ? args = {_q, _qdot} : args = {_q, _qdot, _params};
 
     casadi::Function KINETICENERGY("kineticEnergy",
-                                   {_q, _qdot}, {DT},
+                                   args, {DT},
                                    {"q", "v"}, {"DT"});
 
     return KINETICENERGY;
@@ -535,14 +534,16 @@ casadi::Function CasadiKinDyn::Impl::kineticEnergy()
 
 casadi::Function CasadiKinDyn::Impl::potentialEnergy()
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+    pinocchio::DataTpl<Scalar> data(_model);
 
 
-    Scalar DU = pinocchio::computePotentialEnergy(model, data, cas_to_eig(_q));
+    Scalar DU = pinocchio::computePotentialEnergy(_model, data, cas_to_eig(_q));
+
+    std::vector<casadi::SX> args;
+    (_params.size1() == 0) ? args = {_q} : args = {_q, _params};
 
     casadi::Function POTENTIALENERGY("potentialEnergy",
-                                     {_q}, {DU},
+                                     args, {DU},
                                      {"q"}, {"DU"});
 
     return POTENTIALENERGY;
@@ -550,16 +551,19 @@ casadi::Function CasadiKinDyn::Impl::potentialEnergy()
 
 casadi::Function CasadiKinDyn::Impl::aba()
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+    pinocchio::DataTpl<Scalar> data(_model);
 
 
-    pinocchio::aba(model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_tau));
+    pinocchio::aba(_model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_tau));
 
 
     auto ddq = eig_to_cas(data.ddq);
+
+    std::vector<casadi::SX> args;
+    (_params.size1() == 0) ? args = {_q, _qdot, _tau} : args = {_q, _qdot, _tau, _params};
+
     casadi::Function FD("rnea",
-                        {_q, _qdot, _tau}, {ddq},
+                        args, {ddq},
                         {"q", "v", "tau"}, {"a"});
 
     return FD;
