@@ -46,6 +46,10 @@ public:
 
     Eigen::VectorXd getMinimalQ(Eigen::VectorXd q);
 
+    bool symbolicMass(std::string link_name);
+    bool symbolicMasses();
+    bool symbolicLengths();
+
     casadi::Function integrate();
 
     casadi::Function qdot();
@@ -102,7 +106,9 @@ private:
     static casadi::SX eigmat_to_cas(const MatrixXs& eig);
 
     pinocchio::Model _model_dbl;
-    casadi::SX _q, _qdot, _qddot, _tau;
+    pinocchio::ModelTpl<Scalar> _model;
+    casadi::SX _q, _qdot, _qddot, _tau, _params;
+    std::vector<std::string> _sym_masses_names;
     std::vector<double> _q_min, _q_max;
     urdf::ModelInterfaceSharedPtr _urdf;
 
@@ -142,6 +148,9 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
     }
 
     pinocchio::buildReducedModel(model_full, joints_to_lock, joint_pos, _model_dbl);
+
+    // cast to SX model
+    _model = _model_dbl.cast<Scalar>();
 
     // create symsfixed_joints
     _q = casadi::SX::sym("q", _model_dbl.nq);
@@ -210,9 +219,6 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToQ(std::map<std::string, double> jmap)
         {
             joint_pos[qidx] = jpos;
         }
-
-
-
     }
 
     return joint_pos;
@@ -247,7 +253,6 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToV(std::map<std::string, double> jmap)
 
 Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 {
-
     // add guards if q input by user is not of dimension nq()
     auto model = _model_dbl.cast<Scalar>();
     int reduced_size = 0;
@@ -305,6 +310,64 @@ Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 
 }
 
+bool CasadiKinDyn::Impl::symbolicMass(std::string link_name)
+{
+    if (!_model.existFrame(link_name))
+    {
+        throw std::runtime_error("Link '" + link_name + "' does not exist!");
+        return false;
+    }
+
+    int link_frame = _model.getFrameId(link_name);
+    auto frame = _model.frames[link_frame];
+    int joint_id = frame.parent;
+
+    if (std::find(_sym_masses_names.begin(), _sym_masses_names.end(), _model.names[joint_id]) != _sym_masses_names.end())
+    {
+        std::cout << "Body rooted in " << _model.names[joint_id] << " already created!" << std::endl;
+        return true;
+    }
+
+    std::cout << "Creating Body rooted in " << _model.names[joint_id] << std::endl;
+
+    _model.inertias[joint_id].mass() = casadi::SX::sym("mass_" + _model.names[joint_id], 1);
+    _params = casadi::SX::vertcat({_params, _model.inertias[joint_id].mass()});
+    _sym_masses_names.push_back(_model.names[joint_id]);
+
+    return true;
+}
+
+bool CasadiKinDyn::Impl::symbolicMasses()
+{
+    for (auto joint : _model.joints)
+    {
+        if (joint.id() > _model.names.size())
+            continue;
+
+        std::cout << "Creating Body rooted in " << _model.names[joint.id()] << std::endl;
+        _model.inertias[joint.id()].mass() = casadi::SX::sym("mass_" + _model.names[joint.id()], 1);
+        _params = casadi::SX::vertcat({_params, _model.inertias[joint.id()].mass()});
+    }
+
+    return true;
+}
+
+bool CasadiKinDyn::Impl::symbolicLengths()
+{
+    for (auto joint : _model.joints)
+    {
+        if (joint.id() > _model.names.size())
+            continue;
+
+        _model.jointPlacements[joint.id()].translation() = Eigen::Matrix<Scalar, 3, 1>(casadi::SX::sym(_model.names[joint.id()] + "_x", 1),
+                                                                                       casadi::SX::sym(_model.names[joint.id()] + "_y", 1),
+                                                                                       casadi::SX::sym(_model.names[joint.id()] + "_z", 1));
+        _params = casadi::SX::vertcat({_params, eig_to_cas(_model.jointPlacements[joint.id()].translation())});
+    }
+
+    return true;
+}
+
 casadi::Function CasadiKinDyn::Impl::integrate()
 {
     auto model = _model_dbl.cast<Scalar>();
@@ -320,7 +383,7 @@ casadi::Function CasadiKinDyn::Impl::integrate()
 casadi::Function CasadiKinDyn::Impl::qdot()
 {
     auto model = _model_dbl.cast<Scalar>();
-    Eigen::Matrix<Scalar, -1, 1> qdot(model.nq);
+    Eigen::Matrix<Scalar, -1, 1> qdot(_model.nq);
 
     auto qeig = cas_to_eig(_q);
     auto veig = cas_to_eig(_qdot);
@@ -546,19 +609,28 @@ std::string CasadiKinDyn::Impl::childLink(const std::string &jname) const
 
 casadi::Function CasadiKinDyn::Impl::rnea()
 {
-    auto model = _model_dbl.cast<Scalar>();
-    pinocchio::DataTpl<Scalar> data(model);
+//    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(_model);
 
 
-    pinocchio::rnea(model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_qddot));
+    pinocchio::rnea(_model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_qddot));
 
 
     auto tau = eig_to_cas(data.tau);
-    casadi::Function ID("rnea",
-                        {_q, _qdot, _qddot}, {tau},
-                        {"q", "v", "a"}, {"tau"});
-
-    return ID;
+    if(_params.size1() == 0)
+    {
+        casadi::Function ID("rnea",
+                            {_q, _qdot, _qddot}, {tau},
+                            {"q", "v", "a"}, {"tau"});
+        return ID;
+    }
+    else
+    {
+        casadi::Function ID("rnea",
+                            {_q, _qdot, _qddot, _params}, {tau},
+                            {"q", "v", "a", "p"}, {"tau"});
+        return ID;
+    }
 }
 
 casadi::Function CasadiKinDyn::Impl::computeCentroidalDynamics()
@@ -960,4 +1032,18 @@ std::any CasadiKinDyn::modelHandle() const
     return impl().model();
 }
 
+bool CasadiKinDyn::symbolicMass(std::string link_name)
+{
+    return impl().symbolicMass(link_name);
+}
+
+bool CasadiKinDyn::symbolicMasses()
+{
+    return impl().symbolicMasses();
+}
+
+bool CasadiKinDyn::symbolicLenghts()
+{
+    return impl().symbolicLengths();
+}
 }

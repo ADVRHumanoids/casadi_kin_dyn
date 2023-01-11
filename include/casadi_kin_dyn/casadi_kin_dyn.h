@@ -81,6 +81,10 @@ public:
 
     casadi::Function potentialEnergy();
 
+    bool symbolicMass(std::string link_name);
+    bool symbolicMasses();
+    bool symbolicLenghts();
+
     std::vector<double> q_min() const;
 
     std::vector<double> q_max() const;
