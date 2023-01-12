@@ -526,8 +526,8 @@ casadi::Function CasadiKinDyn::Impl::kineticEnergy()
     (_params.size1() == 0) ? args = {_q, _qdot} : args = {_q, _qdot, _params};
 
     casadi::Function KINETICENERGY("kineticEnergy",
-                                   args, {DT},
-                                   {"q", "v"}, {"DT"});
+                                   {_q, _qdot, _params}, {DT},
+                                   {"q", "v", "p"}, {"DT"});
 
     return KINETICENERGY;
 }
@@ -543,8 +543,8 @@ casadi::Function CasadiKinDyn::Impl::potentialEnergy()
     (_params.size1() == 0) ? args = {_q} : args = {_q, _params};
 
     casadi::Function POTENTIALENERGY("potentialEnergy",
-                                     args, {DU},
-                                     {"q"}, {"DU"});
+                                     {_q, _params}, {DU},
+                                     {"q", "p"}, {"DU"});
 
     return POTENTIALENERGY;
 }
@@ -563,8 +563,8 @@ casadi::Function CasadiKinDyn::Impl::aba()
     (_params.size1() == 0) ? args = {_q, _qdot, _tau} : args = {_q, _qdot, _tau, _params};
 
     casadi::Function FD("rnea",
-                        args, {ddq},
-                        {"q", "v", "tau"}, {"a"});
+                        {_q, _qdot, _tau, _params}, {ddq},
+                        {"q", "v", "tau", "p"}, {"a"});
 
     return FD;
 }
@@ -621,20 +621,11 @@ casadi::Function CasadiKinDyn::Impl::rnea()
 
 
     auto tau = eig_to_cas(data.tau);
-    if(_params.size1() == 0)
-    {
-        casadi::Function ID("rnea",
-                            {_q, _qdot, _qddot}, {tau},
-                            {"q", "v", "a"}, {"tau"});
-        return ID;
-    }
-    else
-    {
-        casadi::Function ID("rnea",
-                            {_q, _qdot, _qddot, _params}, {tau},
-                            {"q", "v", "a", "p"}, {"tau"});
-        return ID;
-    }
+
+    casadi::Function ID("rnea",
+                        {_q, _qdot, _qddot, _params}, {tau},
+                        {"q", "v", "a", "p"}, {"tau"});
+    return ID;
 }
 
 casadi::Function CasadiKinDyn::Impl::computeCentroidalDynamics()
@@ -652,8 +643,8 @@ casadi::Function CasadiKinDyn::Impl::computeCentroidalDynamics()
     auto dh_lin = eig_to_cas(data.dhg.linear());
     auto dh_ang = eig_to_cas(data.dhg.angular());
     casadi::Function CD("computeCentroidalDynamics",
-                        {_q, _qdot, _qddot}, {h_lin, h_ang, dh_lin, dh_ang},
-                        {"q", "v", "a"}, {"h_lin", "h_ang", "dh_lin", "dh_ang"});
+                        {_q, _qdot, _qddot, _params}, {h_lin, h_ang, dh_lin, dh_ang},
+                        {"q", "v", "a", "p"}, {"h_lin", "h_ang", "dh_lin", "dh_ang"});
 
     return CD;
 }
@@ -667,8 +658,8 @@ casadi::Function CasadiKinDyn::Impl::ccrba()
     auto Ah_cas = eigmat_to_cas(Ah);
 
     casadi::Function CCRBA("ccrba",
-                        {_q}, {Ah_cas},
-                        {"q"}, {"A"});
+                        {_q, _params}, {Ah_cas},
+                        {"q", "p"}, {"A"});
 
     return CCRBA;
 
@@ -698,8 +689,8 @@ casadi::Function CasadiKinDyn::Impl::frameVelocity(std::string link_name, Refere
     auto ee_vel_angular = eig_to_cas(eig_vel.tail(3));
 
     casadi::Function FRAME_VELOCITY("frame_velocity",
-                                    {_q, _qdot}, {ee_vel_linear, ee_vel_angular},
-                                    {"q", "qdot"}, {"ee_vel_linear", "ee_vel_angular"});
+                                    {_q, _qdot, _params}, {ee_vel_linear, ee_vel_angular},
+                                    {"q", "qdot", "p"}, {"ee_vel_linear", "ee_vel_angular"});
 
     return FRAME_VELOCITY;
 }
@@ -730,8 +721,8 @@ casadi::Function CasadiKinDyn::Impl::frameAcceleration(std::string link_name, Re
     auto ee_acc_angular = eig_to_cas(eig_acc.tail(3));
 
     casadi::Function FRAME_ACCEL("frame_acceleration",
-                                    {_q, _qdot, _qddot}, {ee_acc_linear, ee_acc_angular},
-                                    {"q", "qdot", "qddot"}, {"ee_acc_linear", "ee_acc_angular"});
+                                    {_q, _qdot, _qddot, _params}, {ee_acc_linear, ee_acc_angular},
+                                    {"q", "qdot", "qddot", "p"}, {"ee_acc_linear", "ee_acc_angular"});
 
     return FRAME_ACCEL;
 }
@@ -751,8 +742,8 @@ casadi::Function CasadiKinDyn::Impl::fk(std::string link_name)
 
 
     casadi::Function FK("forward_kinematics",
-                        {_q}, {ee_pos, ee_rot},
-                        {"q"}, {"ee_pos", "ee_rot"});
+                        {_q, _params}, {ee_pos, ee_rot},
+                        {"q", "p"}, {"ee_pos", "ee_rot"});
 
 
     return FK;
@@ -773,8 +764,8 @@ casadi::Function CasadiKinDyn::Impl::centerOfMass()
     auto vcom = eig_to_cas(data.vcom[0]);
     auto acom = eig_to_cas(data.acom[0]);
     casadi::Function CoM("centerOfMass",
-                         {_q, _qdot, _qddot}, {com, vcom, acom},
-                         {"q", "v", "a"}, {"com", "vcom", "acom"});
+                         {_q, _qdot, _qddot, _params}, {com, vcom, acom},
+                         {"q", "v", "a", "p"}, {"com", "vcom", "acom"});
 
     return CoM;
 
@@ -799,7 +790,9 @@ casadi::Function CasadiKinDyn::Impl::jacobian(std::string link_name, ReferenceFr
 
 
     auto Jac = eigmat_to_cas(J);
-    casadi::Function JACOBIAN("jacobian", {_q}, {Jac}, {"q"}, {"J"});
+    casadi::Function JACOBIAN("jacobian",
+                              {_q, _params}, {Jac},
+                              {"q", "p"}, {"J"});
 
     return JACOBIAN;
 }
@@ -814,7 +807,9 @@ casadi::Function CasadiKinDyn::Impl::crba()
     M.triangularView<Eigen::Lower>() = M.transpose();
 
     auto Inertia = eigmat_to_cas(M);
-    casadi::Function INERTIA("crba", {_q}, {Inertia}, {"q"}, {"B"});
+    casadi::Function INERTIA("crba",
+                             {_q, _params}, {Inertia},
+                             {"q", "p"}, {"B"});
 
     return INERTIA;
 }
