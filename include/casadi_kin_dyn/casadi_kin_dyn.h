@@ -83,7 +83,7 @@ public:
 
     bool symbolicMass(std::string link_name);
     bool symbolicMasses();
-    bool symbolicLenghts();
+    bool symbolicLengths(std::vector<std::string> ee_names = {});
 
     std::vector<double> q_min() const;
 

@@ -92,7 +92,7 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("urdf", &CasadiKinDyn::urdf)
             .def("symbolicMass", &CasadiKinDyn::symbolicMass)
             .def("symbolicMasses", &CasadiKinDyn::symbolicMasses)
-            .def("symbolicLenghts", &CasadiKinDyn::symbolicLenghts)
+            .def("symbolicLengths", &CasadiKinDyn::symbolicLengths)
             ;
 
     py::enum_<CasadiKinDyn::ReferenceFrame>(casadikindyn, "ReferenceFrame")

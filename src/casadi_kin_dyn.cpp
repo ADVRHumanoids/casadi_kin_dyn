@@ -48,7 +48,7 @@ public:
 
     bool symbolicMass(std::string link_name);
     bool symbolicMasses();
-    bool symbolicLengths();
+    bool symbolicLengths(std::vector<std::string> ee_names = {});
 
     casadi::Function integrate();
 
@@ -108,7 +108,7 @@ private:
     pinocchio::Model _model_dbl;
     pinocchio::ModelTpl<Scalar> _model;
     casadi::SX _q, _qdot, _qddot, _tau, _params;
-    std::vector<std::string> _sym_masses_names;
+    std::vector<std::string> _sym_masses_names, _sym_lengths_names;
     std::vector<double> _q_min, _q_max;
     urdf::ModelInterfaceSharedPtr _urdf;
 
@@ -350,21 +350,48 @@ bool CasadiKinDyn::Impl::symbolicMasses()
     return true;
 }
 
-bool CasadiKinDyn::Impl::symbolicLengths()
+bool CasadiKinDyn::Impl::symbolicLengths(std::vector<std::string> ee_names)
 {
     for (auto joint : _model.joints)
     {
         if (joint.id() > _model.names.size())
             continue;
 
+        std::cout << "Creating symbolic length referred to joint " << _model.names[joint.id()] <<  " w.r.t. joint " << _model.names[_model.parents[joint.id()]] << std::endl;
+        std::cout << _model.jointPlacements[joint.id()].translation().transpose() << std::endl;
+        std::cout << _model.jointPlacements[joint.id()].rotation() << std::endl;
+
         _model.jointPlacements[joint.id()].translation() = Eigen::Matrix<Scalar, 3, 1>(casadi::SX::sym(_model.names[joint.id()] + "_x", 1),
                                                                                        casadi::SX::sym(_model.names[joint.id()] + "_y", 1),
                                                                                        casadi::SX::sym(_model.names[joint.id()] + "_z", 1));
+        _sym_lengths_names.push_back(_model.names[_model.parents[joint.id()]]);
         _params = casadi::SX::vertcat({_params, eig_to_cas(_model.jointPlacements[joint.id()].translation())});
     }
 
-    return true;
-}
+    for (auto ee_name : ee_names)
+    {
+        // TODO: add check about possible symbolicLength existence (metti il caso che lo user sia ritardato e ti da il nome di un link che non è l'end-effector)
+        if (!_model.existFrame(ee_name))
+        {
+            throw std::runtime_error(ee_name + " is not part of the robot model!");
+            return false;
+        }
+        else if (std::find(_sym_lengths_names.begin(), _sym_lengths_names.end(), _model.names[_model.frames[_model.getFrameId(ee_name)].parent]) != _sym_lengths_names.end())
+        {
+            throw std::runtime_error(ee_name + " refers to a body whose symbolic length has already been created. Are you sure it is the end-effector?");
+            return false;
+        }
+        std::cout << "Creating symbolic length referred to end_effector " << _model.frames[_model.getFrameId(ee_name)].name <<  " w.r.t. joint " << _model.names[_model.frames[_model.getFrameId(ee_name)].parent] << std::endl;
+        std::cout << _model.frames[_model.getFrameId(ee_name)].placement.translation().transpose() << std::endl;
+        std::cout << _model.frames[_model.getFrameId(ee_name)].placement.rotation() << std::endl;
+
+        _model.frames[_model.getFrameId(ee_name)].placement.translation() = Eigen::Matrix<Scalar, 3, 1>(casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_x", 1),
+                                                                                                        casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_y", 1),
+                                                                                                        casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_z", 1));
+        _params = casadi::SX::vertcat({_params, eig_to_cas(_model.frames[_model.getFrameId(ee_name)].placement.translation())});
+    }
+
+    return true;}
 
 casadi::Function CasadiKinDyn::Impl::integrate()
 {
@@ -1041,8 +1068,8 @@ bool CasadiKinDyn::symbolicMasses()
     return impl().symbolicMasses();
 }
 
-bool CasadiKinDyn::symbolicLenghts()
+bool CasadiKinDyn::symbolicLengths(std::vector<std::string> ee_names)
 {
-    return impl().symbolicLengths();
+    return impl().symbolicLengths(ee_names);
 }
 }
