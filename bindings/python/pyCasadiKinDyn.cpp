@@ -80,6 +80,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
                  make_deserialized(&CasadiKinDyn::centerOfMass))
             .def("jacobian",
                  make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::jacobian))
+            .def("jacobian_dot",
+                 make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::jacobian_dot))
             .def("frameVelocity",
                  make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::frameVelocity))
             .def("frameAcceleration",

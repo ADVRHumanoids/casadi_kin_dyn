@@ -66,6 +66,8 @@ public:
 
     casadi::Function jacobian(std::string link_name, ReferenceFrame ref);
 
+    casadi::Function jacobian_dot(std::string link_name, ReferenceFrame ref);
+
     casadi::Function frameVelocity(std::string link_name, ReferenceFrame ref);
 
     casadi::Function frameAcceleration(std::string link_name, ReferenceFrame ref);
@@ -728,6 +730,27 @@ casadi::Function CasadiKinDyn::Impl::jacobian(std::string link_name, ReferenceFr
     return JACOBIAN;
 }
 
+casadi::Function CasadiKinDyn::Impl::jacobian_dot(std::string link_name, ReferenceFrame ref)
+{
+    auto model = _model_dbl.cast<Scalar>();
+    pinocchio::DataTpl<Scalar> data(model);
+
+    auto frame_idx = model.getFrameId(link_name);
+
+    // Compute expression for forward kinematics with Pinocchio
+    Eigen::Matrix<Scalar, 6, -1> J_dot;
+    J_dot.setZero(6, nv());
+
+    pinocchio::computeJointJacobiansTimeVariation(model, data, cas_to_eig(_q), cas_to_eig(_qdot));
+    pinocchio::getFrameJacobianTimeVariation(model, data, frame_idx, pinocchio::ReferenceFrame(ref), J_dot); //"LOCAL" DEFAULT PINOCCHIO COMPUTATION
+
+    auto Jac_dot = eigmat_to_cas(J_dot);
+    casadi::Function JACOBIAN_DOT("jacobian_dot",
+                              {_q, _qdot}, {Jac_dot},
+                              {"q", "v"}, {"J_dot"});
+
+    return JACOBIAN_DOT;
+}
 
 casadi::Function CasadiKinDyn::Impl::crba()
 {
