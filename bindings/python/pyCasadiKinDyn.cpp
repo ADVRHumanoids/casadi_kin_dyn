@@ -93,6 +93,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("symbolicMass", &CasadiKinDyn::symbolicMass)
             .def("symbolicMasses", &CasadiKinDyn::symbolicMasses)
             .def("symbolicLengths", &CasadiKinDyn::symbolicLengths)
+            .def("velocityLimits", &CasadiKinDyn::velocityLimits)
+            .def("effortLimits", &CasadiKinDyn::effortLimits)
             ;
 
     py::enum_<CasadiKinDyn::ReferenceFrame>(casadikindyn, "ReferenceFrame")

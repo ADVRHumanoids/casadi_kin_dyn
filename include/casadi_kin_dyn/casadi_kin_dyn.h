@@ -85,6 +85,9 @@ public:
     bool symbolicMasses();
     bool symbolicLengths(std::vector<std::string> ee_names = {});
 
+    Eigen::VectorXd velocityLimits() const;
+    Eigen::VectorXd effortLimits() const;
+
     std::vector<double> q_min() const;
 
     std::vector<double> q_max() const;

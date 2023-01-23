@@ -84,6 +84,9 @@ public:
 
     pinocchio::Model model() const;
 
+    Eigen::VectorXd velocityLimits() const;
+    Eigen::VectorXd effortLimits() const;
+
     int joint_nq(const std::string& jname) const;
 
     int joint_iq(const std::string& jname) const;
@@ -176,6 +179,16 @@ double CasadiKinDyn::Impl::mass() const
 
     return double(M);
 
+}
+
+Eigen::VectorXd CasadiKinDyn::Impl::velocityLimits() const
+{
+    return _model_dbl.velocityLimit;
+}
+
+Eigen::VectorXd CasadiKinDyn::Impl::effortLimits() const
+{
+    return _model_dbl.effortLimit;
 }
 
 std::vector<double> CasadiKinDyn::Impl::q_min() const
@@ -1071,5 +1084,15 @@ bool CasadiKinDyn::symbolicMasses()
 bool CasadiKinDyn::symbolicLengths(std::vector<std::string> ee_names)
 {
     return impl().symbolicLengths(ee_names);
+}
+
+Eigen::VectorXd CasadiKinDyn::velocityLimits() const
+{
+    return impl().velocityLimits();
+}
+
+Eigen::VectorXd CasadiKinDyn::effortLimits() const
+{
+    return impl().effortLimits();
 }
 }
