@@ -917,6 +917,10 @@ casadi::Function CasadiKinDyn::jacobian(std::string link_name, ReferenceFrame re
     return impl().jacobian(link_name, ref);
 }
 
+casadi::Function CasadiKinDyn::jacobian_dot(std::string link_name, ReferenceFrame ref)
+{
+    return impl().jacobian_dot(link_name, ref);
+}
 
 CasadiKinDyn::~CasadiKinDyn()
 {
