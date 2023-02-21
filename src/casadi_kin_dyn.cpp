@@ -49,6 +49,7 @@ public:
     bool symbolicMass(std::string link_name);
     bool symbolicMasses();
     bool symbolicLengths(std::vector<std::string> ee_names = {});
+    bool symbolicInertias();
 
     casadi::Function integrate();
 
@@ -401,10 +402,42 @@ bool CasadiKinDyn::Impl::symbolicLengths(std::vector<std::string> ee_names)
         _model.frames[_model.getFrameId(ee_name)].placement.translation() = Eigen::Matrix<Scalar, 3, 1>(casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_x", 1),
                                                                                                         casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_y", 1),
                                                                                                         casadi::SX::sym(_model.names[_model.frames[_model.getFrameId(ee_name)].parent] + "_z", 1));
+
         _params = casadi::SX::vertcat({_params, eig_to_cas(_model.frames[_model.getFrameId(ee_name)].placement.translation())});
     }
 
-    return true;}
+    return true;
+}
+
+//bool CasadiKinDyn::Impl:computeInertias()
+//{
+//    auto inertia_box = pinocchio::InertiaTpl::FromBox()
+//}
+//bool CasadiKinDyn::Impl::symbolicInertias()
+//{
+//    for (auto joint : _model.joints)
+//    {
+//        if (joint.id() > _model.names.size())
+//            continue;
+
+//        Eigen::Matrix<Scalar, 6, 1> cazzi;
+
+//        cazzi << casadi::SX::sym(_model.names[joint.id()] + "_inertia_xx", 1),
+//                 casadi::SX::sym(_model.names[joint.id()] + "_inertia_yx", 1),
+//                 casadi::SX::sym(_model.names[joint.id()] + "_inertia_yy", 1),
+//                 casadi::SX::sym(_model.names[joint.id()] + "_inertia_zx", 1),
+//                 casadi::SX::sym(_model.names[joint.id()] + "_inertia_zy", 1),
+//                 casadi::SX::sym(_model.names[joint.id()] + "_inertia_zz", 1);
+
+//////        std::cout << "Creating Body rooted in " << _model.names[joint.id()] << std::endl;
+//        _model.inertias[joint.id()].inertia() = cazzi;
+////        _params = casadi::SX::vertcat({_params, cazzi});
+
+
+//    }
+
+//    return true;
+//}
 
 casadi::Function CasadiKinDyn::Impl::integrate()
 {
@@ -602,7 +635,7 @@ casadi::Function CasadiKinDyn::Impl::aba()
     std::vector<casadi::SX> args;
     (_params.size1() == 0) ? args = {_q, _qdot, _tau} : args = {_q, _qdot, _tau, _params};
 
-    casadi::Function FD("rnea",
+    casadi::Function FD("aba",
                         {_q, _qdot, _tau, _params}, {ddq},
                         {"q", "v", "tau", "p"}, {"a"});
 
@@ -1080,6 +1113,11 @@ bool CasadiKinDyn::symbolicMasses()
 {
     return impl().symbolicMasses();
 }
+
+//bool CasadiKinDyn::symbolicInertias()
+//{
+//    return impl().symbolicInertias();
+//}
 
 bool CasadiKinDyn::symbolicLengths(std::vector<std::string> ee_names)
 {

@@ -84,6 +84,7 @@ public:
     bool symbolicMass(std::string link_name);
     bool symbolicMasses();
     bool symbolicLengths(std::vector<std::string> ee_names = {});
+    bool symbolicInertias();
 
     Eigen::VectorXd velocityLimits() const;
     Eigen::VectorXd effortLimits() const;
