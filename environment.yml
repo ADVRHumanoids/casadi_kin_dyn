@@ -1,0 +1,20 @@
+name: test_kin_dyn
+channels:
+- conda-forge
+dependencies:
+- python=3.9
+- nodejs
+- jupyterlab=3.2
+- yaml-cpp
+- pip
+- casadi
+- numpy
+- matplotlib
+- scipy
+- pybind11
+- urdfdom
+- conda-build
+- conda-verify
+- pinocchio
+
+
