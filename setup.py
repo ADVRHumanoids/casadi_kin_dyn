@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="casadi_kin_dyn",
-    version="1.3.4",
+    version="1.4.0",
     author="Arturo Laurenzi",
     author_email="arturo.laurenzi@iit.it",
     description="Package for generation of symbolic (casadi::SX) expressions of robot kinematics and dynamics. Based on URDF and Pinocchio.",
