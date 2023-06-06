@@ -31,16 +31,17 @@ before_script:
   - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
   - curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
   - sudo apt update && sudo apt install python3-pip python3-setuptools liburdfdom-dev cmake libeigen3-dev libboost-all-dev libboost-filesystem-dev libboost-chrono-dev libboost-serialization-dev libblas-dev liblapack-dev patchelf python3-venv libassimp-dev
-  - sudo pip3 install build twine hhcm-forest==0.0.26
+  - sudo pip3 install build twine hhcm-forest==1.1.10
   - SRC_FOLDER=$PWD
-  - cd .. && mkdir forest_ws && cd forest_ws && forest --init  # create forest ws for building 
+  - cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for building 
   - ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
-  - forest -a git@github.com:advrhumanoids/multidof_recipes.git master -u --clone-protocol https  # get recipes from repo
+  - FOREST_TAG='fr_recipes'
+  - forest add-recipes git@github.com:advrhumanoids/multidof_recipes.git --tag $FOREST_TAG --clone-protocol https  # get recipes from repo
 
 script: 
   - source setup.bash
-  - FOREST_ARGS="--default-build-type Release --clone-protocol https --verbose -j2"
-  - forest casadi_kin_dyn $FOREST_ARGS
+  - FOREST_ARGS="--default-build-type Release --clone-protocol https --mode casadi_stable --verbose -j2" #mode casadi stable downloads the correct osqp
+  - forest grow casadi_kin_dyn $FOREST_ARGS
   - cd build/casadi_kin_dyn
   - make generate_python_package
   - cd ../../src/casadi_kin_dyn
