@@ -35,14 +35,14 @@ before_script:
   - SRC_FOLDER=$PWD
   - cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for building 
   - ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
-  - FOREST_TAG='fr_recipes'
+  - FOREST_TAG='master'
   - forest add-recipes git@github.com:advrhumanoids/multidof_recipes.git --tag $FOREST_TAG --clone-protocol https  # get recipes from repo
 
 script: 
   - source setup.bash
-  - FOREST_ARGS="--default-build-type Release --clone-protocol https --mode casadi_stable --verbose -j2" #mode casadi stable downloads the correct osqp
+  - FOREST_ARGS="--default-build-type Release --clone-protocol https --verbose -j2"
   - forest grow casadi_kin_dyn $FOREST_ARGS
   - cd build/casadi_kin_dyn
   - make generate_python_package
   - cd ../../src/casadi_kin_dyn
-  - if [ -z $TRAVIS_TAG ]; then echo "Not a tag build, will not upload to pypi"; else twine upload -u __token__ -p $PYPI_TOKEN dist/*.whl; fi
+  - if [ -z $TRAVIS_TAG ]; then echo "Not a tag build, will not upload to pypi"; else twine upload --verbose -u __token__ -p $PYPI_TOKEN dist/*.whl; fi
