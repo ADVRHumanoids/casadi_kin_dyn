@@ -24,7 +24,7 @@ echo -e "building package $PACKAGE_NAME .."
 cd conda/
 
 # building the casadi_kin_dyn package
-mamba build --token $CONDA_UPLOAD_TOKEN -c conda-forge $PACKAGE_NAME
+mamba build --token $CONDA_TOKEN -c conda-forge $PACKAGE_NAME
 
 echo -e "done."
 
