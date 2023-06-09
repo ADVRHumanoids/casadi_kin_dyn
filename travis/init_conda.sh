@@ -11,8 +11,9 @@ export PATH=$PWD/mambaforge/bin:$PATH
 source ~/.bashrc
 
 echo -e "creating conda environment.."
+CONDA_CONFIG_PATH=
 # create environment for conda
-yes Y | mamba env create -f environment.yml
+yes Y | mamba env create -f conda/env_build.yml
 
 echo -e "done."
 
