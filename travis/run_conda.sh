@@ -19,12 +19,12 @@ echo -e "activating conda environment $ENVIRONMENT_NAME .."
 mamba activate $ENVIRONMENT_NAME
 echo -e "done."
 
-echo -e "building package $PACKAGE_NAME .."
+echo -e "building package .."
 
 cd conda/
 
 # building the casadi_kin_dyn package
-mamba build --token $CONDA_TOKEN -c conda-forge $PACKAGE_NAME
+mamba build --token $CONDA_TOKEN -c conda-forge .
 
 echo -e "done."
 
