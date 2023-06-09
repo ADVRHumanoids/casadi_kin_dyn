@@ -1,0 +1,8 @@
+name: kindyn
+channels:
+- conda-forge
+dependencies:
+- conda-build
+- anaconda-client
+
+

@@ -1,0 +1,47 @@
+package:
+  name: casadi_kin_dyn
+  version: "0.0.4"
+
+source:
+  # path: src
+  git_url: https://github.com/ADVRHumanoids/casadi_kin_dyn.git
+  git_rev: collision
+
+build:
+  number: 0
+  python:  {{ python }}
+
+requirements:
+  build:
+    - python {{ python }}
+    - casadi
+    - hpp-pinocchio # (necessary for hpp-flc that the branch collision uses)
+    - pybind11
+    - urdfdom
+    - compilers
+    - cmake
+    - conda-build
+    - conda-verify
+    - anaconda-client
+    - gxx_linux-64  # required for a bug in letsee (which is actually not necessary)
+  run:
+    - python # this is required to 'activate' the build matrix for multiple versions of python
+
+test:
+  files:
+    - tests/cart_pole_urdf_reader.py
+    - tests/cart_pole.urdf
+  requires:
+    - scipy
+    - casadi
+    - numpy
+    - pybind11
+    - urdfdom
+    - matplotlib
+    - pytest
+  commands:
+    - cd tests/ && python3 cart_pole_urdf_reader.py
+
+about:
+  home: https://github.com/ADVRHumanoids/casadi_kin_dyn
+  summary: "Package for generation of symbolic (SX) expressions of robot kinematics and dynamics. Based on URDF and Pinocchio."

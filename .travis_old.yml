@@ -1,0 +1,62 @@
+os: linux
+language: python
+compiler: g++
+
+jobs:
+  include:
+    - os: linux
+      dist: focal
+      python: 3.7
+    - os: linux
+      dist: focal
+      python: 3.8
+    - os: linux
+      dist: focal
+      python: 3.9
+    - os: linux
+      dist: focal
+      python: 3.10
+    - os: linux
+      dist: bionic
+    - os: linux
+      dist: focal
+      env: DISTRIBUTION="conda"
+
+branches:
+  only:
+    - pypi
+    - /^v\d+\.\d+\.\d+.*$/  # version tags
+
+notifications:
+  email:
+    recipients:
+      - francesco.ruscelli@iit.it
+      - arturo.laurenzi@iit.it
+      - enrico.mingo@pal-robotics.com
+    on_success: never
+    on_failure: always
+    
+before_install:
+- rm -rf /opt/pyenv
+
+before_script:
+  - echo "Travis tag is $TRAVIS_TAG"
+  - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+  - curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+  - sudo apt update && sudo apt install python3-pip python3-setuptools liburdfdom-dev cmake libeigen3-dev libboost-all-dev libboost-filesystem-dev libboost-chrono-dev libboost-serialization-dev libblas-dev liblapack-dev patchelf python3-venv libassimp-dev
+  - pip install build
+  - sudo pip3 install build twine hhcm-forest==1.1.11
+  - SRC_FOLDER=$PWD
+  - cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for building 
+  - ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
+  - FOREST_TAG='master'
+  - forest add-recipes git@github.com:advrhumanoids/multidof_recipes.git --tag $FOREST_TAG --clone-protocol https  # get recipes from repo
+
+script: 
+  - source setup.bash
+  - FOREST_ARGS="--default-build-type Release --clone-protocol https --verbose -j2"
+  - forest grow casadi_kin_dyn $FOREST_ARGS
+  - cd build/casadi_kin_dyn
+  - make generate_python_package
+  - cd ../../src/casadi_kin_dyn
+  - if [ -z $TRAVIS_TAG ]; then echo "Not a tag build, will not upload to pypi"; else twine upload --verbose -u __token__ -p $PYPI_TOKEN dist/*.whl; fi
