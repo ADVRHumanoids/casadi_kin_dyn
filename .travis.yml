@@ -41,8 +41,8 @@ notifications:
     on_success: never
     on_failure: always
 
-before_install:
-  - rm -rf /opt/pyenv
+# before_install:
+  # - rm -rf /opt/pyenv
 
 before_script:
   - export SRC_DIR=$PWD
