@@ -1,5 +1,5 @@
 #!/bin/bash -i
-sudo pip3 install build twine hhcm-forest==1.1.11
+sudo pip install build twine hhcm-forest==1.1.11
 SRC_FOLDER=$PWD
 cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for building
 # source setup.bash

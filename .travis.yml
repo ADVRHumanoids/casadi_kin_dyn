@@ -1,5 +1,5 @@
 os: linux
-language: cpp
+language: python
 compiler: g++
 
 jobs:
