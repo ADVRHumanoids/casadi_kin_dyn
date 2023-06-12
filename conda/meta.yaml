@@ -3,12 +3,12 @@ package:
   version: "0.0.4"
 
 source:
-  # path: src
-  git_url: https://github.com/ADVRHumanoids/casadi_kin_dyn.git
-  git_rev: collision
+  path: ..
+  # git_url: https://github.com/ADVRHumanoids/casadi_kin_dyn.git
+  # git_rev: pypi
 
 build:
-  number: 0
+  number: 1
   python:  {{ python }}
 
 requirements:
@@ -28,9 +28,8 @@ requirements:
     - python # this is required to 'activate' the build matrix for multiple versions of python
 
 test:
-  files:
-    - tests/cart_pole_urdf_reader.py
-    - tests/cart_pole.urdf
+  source_files:
+    - tests/cart_pole.urdf # include urdf for testing
   requires:
     - scipy
     - casadi
@@ -39,8 +38,6 @@ test:
     - urdfdom
     - matplotlib
     - pytest
-  commands:
-    - cd tests/ && python3 cart_pole_urdf_reader.py
 
 about:
   home: https://github.com/ADVRHumanoids/casadi_kin_dyn

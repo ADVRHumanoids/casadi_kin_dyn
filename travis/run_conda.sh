@@ -4,10 +4,10 @@ set -ev
 # A simple script to initialize the conda environment
 ENVIRONMENT_NAME=kindyn
 PACKAGE_NAME=casadi_kin_dyn
-UPLOAD=True
 
 if [ -z $TRAVIS_TAG ]; then
     echo -e "uploading to conda: false";
+    mamba config --set anaconda_upload no;
 else
     echo -e "uploading to conda: true";
     mamba config --set anaconda_upload yes;

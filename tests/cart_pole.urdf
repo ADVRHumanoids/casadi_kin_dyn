@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<robot name="cart_pole">
+
+<material name="blue">
+  <color rgba="0 0 0.8 1"/>
+</material>
+<material name="black">
+  <color rgba="0 0 0 1"/>
+</material>
+<material name="red">
+  <color rgba="1.0 0.0 0.0 1"/>
+</material>
+
+<link name="world"/>
+
+<link name="base_link"/>
+
+<link name="cart">
+  <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="10.0"/>
+      <inertia ixx="0.01666667" ixy="0.0" ixz="0.0" iyy="0.01666667" iyz="0.0" izz="0.01666667"/>
+  </inertial>
+  <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry name="cart_visual">
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+      <material name="blue"/>
+  </visual>
+  <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry name="cart_collision">
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+  </collision>
+</link>
+
+<link name="pole">
+  <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 -0.25"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.0208583332" ixy="0.0" ixz="0.0" iyy="0.0208583332" iyz="0.0" izz="5e-5"/>
+  </inertial>
+  <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 -0.25"/>
+      <geometry name="cart_visual">
+        <cylinder radius="0.01" length="0.5"/>
+      </geometry>
+      <material name="black"/>
+  </visual>
+  <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 -0.25"/>
+      <geometry name="cart_collision">
+        <cylinder radius="0.01" length="0.5"/>
+      </geometry>
+  </collision>
+</link>
+
+
+<link name="mass">
+  <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="3.0"/>
+      <inertia ixx="0.003" ixy="0.0" ixz="0.0" iyy="0.003" iyz="0.0" izz="0.003"/>
+  </inertial>
+  <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry name="mass_visual">
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="red"/>
+  </visual>
+  <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry name="mass_collision">
+        <sphere radius="0.05"/>
+      </geometry>
+  </collision>
+</link>
+
+
+
+<joint name="base_link_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+</joint>
+
+<joint name="cart_joint" type="prismatic">
+    <axis xyz="1 0 0"/>
+    <parent link="base_link"/>
+    <child link="cart"/>
+    <origin rpy="0 0 0" xyz="0 0 0."/>
+    <limit effort="1000" lower="-10." upper="10." velocity="100"/>
+</joint>
+
+<joint name="pole_joint" type="revolute">
+    <axis xyz="0 1 0"/>
+    <parent link="cart"/>
+    <child link="pole"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <limit effort="0" lower="-6.283" upper="6.283" velocity="100"/>
+</joint>
+
+<joint name="mass_joint" type="fixed">
+    <parent link="pole"/>
+    <child link="mass"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+</joint>
+
+
+</robot>
