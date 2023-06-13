@@ -7,6 +7,7 @@ PACKAGE_NAME=casadi_kin_dyn
 
 if [ -z $TRAVIS_TAG ]; then
     echo -e "uploading to conda: false";
+    mamba config --set anaconda_upload no;
 else
     echo -e "uploading to conda: true";
     mamba config --set anaconda_upload yes;
