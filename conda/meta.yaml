@@ -32,6 +32,7 @@ test:
     - tests/run_test.py # file running a simple test
     - tests/cart_pole.urdf # include urdf for testing
   requires:
+    - casadi_kin_dyn
     - scipy
     - casadi
     - numpy
