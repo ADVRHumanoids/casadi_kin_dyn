@@ -29,6 +29,7 @@ requirements:
 
 test:
   source_files:
+    - tests/run_test.py # file running a simple test
     - tests/cart_pole.urdf # include urdf for testing
   requires:
     - scipy
