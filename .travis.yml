@@ -25,6 +25,7 @@ jobs:
     #   env: DISTRIBUTION="python"
     - os: linux
       dist: focal
+      python: 3.10
       env: DISTRIBUTION="conda"
 
 branches:
