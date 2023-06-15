@@ -28,9 +28,8 @@ requirements:
     - python # this is required to 'activate' the build matrix for multiple versions of python
 
 test:
-  source_files:
-    - tests/run_test.py # file running a simple test
-    - tests/cart_pole.urdf # include urdf for testing
+  files:
+    - cart_pole.urdf # include urdf for testing
   requires:
     - scipy
     - casadi
@@ -39,8 +38,8 @@ test:
     - urdfdom
     - matplotlib
     - pytest
-  commands:
-    - cd tests/ && python3 run_test.py
+  # commands:
+    # - cd tests/ && python run_test.py
 
 about:
   home: https://github.com/ADVRHumanoids/casadi_kin_dyn
