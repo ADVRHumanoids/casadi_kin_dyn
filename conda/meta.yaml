@@ -40,7 +40,7 @@ test:
     - matplotlib
     - pytest
   commands:
-    - cd tests/ && python3 run_test.py
+    - cd tests/ && python run_test.py
 
 about:
   home: https://github.com/ADVRHumanoids/casadi_kin_dyn
