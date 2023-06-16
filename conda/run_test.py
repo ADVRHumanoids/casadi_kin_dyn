@@ -1,5 +1,5 @@
 import os
-import sys
+print(os.environ.keys())
 print(os.environ['CONDA_DEFAULT_ENV'])
 print(os.environ['PYTHONPATH'])
 
