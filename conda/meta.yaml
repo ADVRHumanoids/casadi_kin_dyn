@@ -38,8 +38,6 @@ test:
     - urdfdom
     - matplotlib
     - pytest
-  # commands:
-    # - cd tests/ && python run_test.py
 
 about:
   home: https://github.com/ADVRHumanoids/casadi_kin_dyn
