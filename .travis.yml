@@ -25,7 +25,6 @@ jobs:
     - os: linux
       language: cpp
       dist: focal
-      python: 3.10
       env: DISTRIBUTION="conda"
 
 branches:
