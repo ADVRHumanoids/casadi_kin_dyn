@@ -41,8 +41,8 @@ notifications:
     on_success: never
     on_failure: always
 
-# before_install:
-#   - if [ "$DISTRIBUTION" = "conda" ]; then rm -rf /opt/pyenv; fi
+before_install:
+  - if [ "$DISTRIBUTION" = "conda" ]; then rm -rf /opt/pyenv; fi
 
 before_script:
   - export SRC_DIR=$PWD
