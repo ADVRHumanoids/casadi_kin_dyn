@@ -1,8 +1,8 @@
-# {% set pyproject = load_file_data('pyproject.toml') %}
+{% set version = load_file_data('../version.txt') %}
 
 package:
   name: casadi_kin_dyn
-  version: "1.5.1"
+  version: {{ version }}
 
 source:
   path: ..

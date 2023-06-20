@@ -1,8 +1,15 @@
 import setuptools
+import os
+import codecs
+
+def read(rel_path):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
 
 setuptools.setup(
     name="casadi_kin_dyn",
-    version="1.5.1",
+    version=read("version.txt"),
     author="Arturo Laurenzi",
     author_email="arturo.laurenzi@iit.it",
     description="Package for generation of symbolic (casadi::SX) expressions of robot kinematics and dynamics. Based on URDF and Pinocchio.",

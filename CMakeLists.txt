@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(casadi_kin_dyn VERSION 1.5.1 LANGUAGES CXX)
+file(STRINGS "version.txt" VERSION_NUMBER)
+project(casadi_kin_dyn VERSION ${VERSION_NUMBER} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
