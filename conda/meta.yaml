@@ -9,7 +9,7 @@ source:
 
 build:
   number: 1
-  python:  {{ python }}
+  python: {{ python }}
 
 requirements:
   build:
@@ -26,10 +26,10 @@ requirements:
     - gxx_linux-64  # required for a bug in letsee (which is actually not necessary)
   run:
     - python # this is required to 'activate' the build matrix for multiple versions of python
-  host:
-    - python
 
 test:
+  imports:
+    - casadi_kin_dyn
   files:
     - cart_pole.urdf # include urdf for testing
   requires:
