@@ -13,7 +13,6 @@ build:
 
 requirements:
   build:
-    - python {{ python }}
     - casadi
     - hpp-pinocchio # (necessary for hpp-flc that the branch collision uses)
     - pybind11
@@ -26,7 +25,9 @@ requirements:
     - gxx_linux-64  # required for a bug in letsee (which is actually not necessary)
   run:
     - python # this is required to 'activate' the build matrix for multiple versions of python
-
+  host:
+    - python
+    
 test:
   imports:
     - casadi_kin_dyn
