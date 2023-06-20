@@ -4,13 +4,12 @@ set -ev
 # A simple script to initialize the conda environment
 ENVIRONMENT_NAME=kindyn
 PACKAGE_NAME=casadi_kin_dyn
-SET_UPLOAD=()
 
 if [ -z $TRAVIS_TAG ]; then
-    SET_UPLOAD+=("--no-anaconda-upload")
+    SET_UPLOAD="--no-anaconda-upload"
     echo -e "Not a tag build, will not upload: $SET_UPLOAD";
 else
-    SET_UPLOAD+=(--token $CONDA_TOKEN)
+    SET_UPLOAD="--token $CONDA_TOKEN"
     echo -e "uploading to conda: $SET_UPLOAD";
 fi
 
@@ -29,4 +28,3 @@ cd conda/
 mamba build $SET_UPLOAD -c conda-forge .
 
 echo -e "done."
-
