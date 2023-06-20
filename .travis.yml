@@ -1,29 +1,24 @@
+os: linux 
+language: python
 compiler: g++
 
 jobs:
   include:
-    # - os: linux
-    #   dist: focal
-    #   language: python
+    # - dist: focal
     #   python: 3.7
     #   env: DISTRIBUTION="python"
-    # - os: linux
-    #   dist: focal
+    # - dist: focal
     #   python: 3.8
     #   env: DISTRIBUTION="python"
-    # - os: linux
-    #   dist: focal
+    # - dist: focal
     #   python: 3.9
     #   env: DISTRIBUTION="python"
-    # - os: linux
-    #   dist: focal
+    # - dist: focal
     #   python: 3.10
     #   env: DISTRIBUTION="python"
-    # - os: linux
-    #   dist: bionic
+    # - dist: bionic
     #   env: DISTRIBUTION="python"
     - os: linux
-      language: cpp
       dist: focal
       env: DISTRIBUTION="conda"
 
