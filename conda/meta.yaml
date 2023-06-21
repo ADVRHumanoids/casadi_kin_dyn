@@ -1,4 +1,4 @@
-{% set version = load_file_data('../version.txt') %}
+{% set version = load_file_data('../version') %}
 
 package:
   name: casadi_kin_dyn
