@@ -48,8 +48,6 @@ target_include_directories(${LIBRARY_TARGET_NAME}
     "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>"
     ${EIGEN3_INCLUDE_DIR})
 
-# casadi wrapper
-add_subdirectory(src/casadi_wrapper)
 
 # Specify installation targets, typology and destination folders.
 include(GNUInstallDirs)
