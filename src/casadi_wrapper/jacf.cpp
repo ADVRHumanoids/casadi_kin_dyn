@@ -13,8 +13,6 @@
 
 #include <math.h>
 
-#include <casadi_kin_dyn/casadi_collision_handler.h>
-
 #ifndef casadi_real
 #define casadi_real double
 #endif
