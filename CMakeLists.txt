@@ -26,7 +26,6 @@ set(LIBRARY_TARGET_NAME casadi_kin_dyn) # set library name
 
 set(${LIBRARY_TARGET_NAME}_SRC
     src/casadi_kin_dyn.cpp
-    src/casadi_collision_handler.cpp
     )
 
 add_library(${LIBRARY_TARGET_NAME} SHARED
@@ -48,12 +47,6 @@ target_include_directories(${LIBRARY_TARGET_NAME}
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>"
     ${EIGEN3_INCLUDE_DIR})
-
-
-add_executable(letsee
-    src/letsee.cpp)
-
-target_link_libraries(letsee ${LIBRARY_TARGET_NAME})
 
 # casadi wrapper
 add_subdirectory(src/casadi_wrapper)
