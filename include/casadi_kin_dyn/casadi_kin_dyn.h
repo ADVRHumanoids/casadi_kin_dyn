@@ -36,7 +36,12 @@ public:
     CasadiKinDyn(const CasadiKinDyn& other);
 
     int nq() const;
+
     int nv() const;
+
+    int joint_nq(const std::string& jname) const;
+
+    int joint_iq(const std::string& jname) const;
 
     Eigen::VectorXd mapToQ(std::map<std::string, double> jmap);
 
@@ -47,6 +52,10 @@ public:
     casadi::Function integrate();
 
     casadi::Function qdot();
+
+    void qdot(Eigen::Ref<const Eigen::VectorXd> q,
+              Eigen::Ref<const Eigen::VectorXd> v,
+              Eigen::Ref<Eigen::VectorXd> qdot);
 
     casadi::Function rnea();
 
@@ -81,6 +90,10 @@ public:
     double mass() const;
 
     std::string urdf() const;
+
+    std::string parentLink(const std::string& jname) const;
+
+    std::string childLink(const std::string& jname) const;
 
     std::any modelHandle() const;
 
