@@ -1,6 +1,4 @@
 #include <casadi_kin_dyn/casadi_kin_dyn.h>
-#include <casadi_kin_dyn/casadi_collision_handler.h>
-
 #include <casadi/casadi.hpp>
 
 #include <pybind11/pybind11.h>
@@ -15,12 +13,12 @@ using namespace casadi_kin_dyn;
 
 using Ref = CasadiKinDyn::ReferenceFrame;
 
-template <typename T, typename... Args>
-auto make_deserialized(casadi::Function (T::* mem_fn)(Args... args))
+template <typename... Args>
+auto make_deserialized(casadi::Function (CasadiKinDyn::* mem_fn)(Args... args))
 {
 
     // make lambda to create deserialized function
-    auto deserialized = [mem_fn](T& self, Args... args)
+    auto deserialized = [mem_fn](CasadiKinDyn& self, Args... args)
     {
         // call member function
         auto fn = (self.*mem_fn)(args...);
@@ -38,10 +36,9 @@ auto make_deserialized(casadi::Function (T::* mem_fn)(Args... args))
     return deserialized;
 }
 
-
 PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
 
-    py::class_<CasadiKinDyn, CasadiKinDyn::Ptr> casadikindyn(m, "CasadiKinDyn");
+    py::class_<CasadiKinDyn> casadikindyn(m, "CasadiKinDyn");
 
     casadikindyn.def(py::init<std::string, bool, std::map<std::string, double>>(),
                      py::arg("urdf"),
@@ -58,10 +55,6 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("joint_names", &CasadiKinDyn::joint_names)
             .def("rnea",
                  make_deserialized(&CasadiKinDyn::rnea))
-            .def("qdot",
-                 make_deserialized(&CasadiKinDyn::qdot))
-            .def("integrate",
-                 make_deserialized(&CasadiKinDyn::integrate))
             .def("aba",
                  make_deserialized(&CasadiKinDyn::aba))
             .def("crba",
@@ -71,15 +64,15 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("computeCentroidalDynamics",
                  make_deserialized(&CasadiKinDyn::computeCentroidalDynamics))
             .def("fk",
-                 make_deserialized<CasadiKinDyn, std::string>(&CasadiKinDyn::fk))
+                 make_deserialized<std::string>(&CasadiKinDyn::fk))
             .def("centerOfMass",
                  make_deserialized(&CasadiKinDyn::centerOfMass))
             .def("jacobian",
-                 make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::jacobian))
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::jacobian))
             .def("frameVelocity",
-                 make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::frameVelocity))
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::frameVelocity))
             .def("frameAcceleration",
-                 make_deserialized<CasadiKinDyn, std::string, Ref>(&CasadiKinDyn::frameAcceleration))
+                 make_deserialized<std::string, Ref>(&CasadiKinDyn::frameAcceleration))
             .def("kineticEnergy",
                  make_deserialized(&CasadiKinDyn::kineticEnergy))
             .def("potentialEnergy",
@@ -92,19 +85,6 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
         .value("LOCAL", CasadiKinDyn::ReferenceFrame::LOCAL)
         .value("WORLD", CasadiKinDyn::ReferenceFrame::WORLD)
         .value("LOCAL_WORLD_ALIGNED", CasadiKinDyn::ReferenceFrame::LOCAL_WORLD_ALIGNED).export_values();
-
-
-    py::class_<CasadiCollisionHandler> collhandler(m, "CollisionHandler");
-
-    collhandler
-            .def(py::init<CasadiKinDyn::Ptr, std::string>(),
-                    py::arg("kd"), py::arg("srdf"))
-            .def("getDistanceFunction",
-                 make_deserialized(&CasadiCollisionHandler::getDistanceFunction))
-            .def("addShape", &CasadiCollisionHandler::addShape,
-                 py::arg("name"), py::arg("type"), py::arg("params"))
-            ;
-
 
 }
 
