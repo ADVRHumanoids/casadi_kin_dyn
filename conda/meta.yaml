@@ -1,4 +1,4 @@
-{% set version = load_file_data('../version') %}
+{% set version = load_file_data("../version.yml", from_recipe_dir=True) %}
 
 package:
   name: casadi_kin_dyn

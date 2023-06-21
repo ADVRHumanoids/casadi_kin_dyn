@@ -9,7 +9,7 @@ def read(rel_path):
 
 setuptools.setup(
     name="casadi_kin_dyn",
-    version=read("version"),
+    version=read("version.yml"),
     author="Arturo Laurenzi",
     author_email="arturo.laurenzi@iit.it",
     description="Package for generation of symbolic (casadi::SX) expressions of robot kinematics and dynamics. Based on URDF and Pinocchio.",

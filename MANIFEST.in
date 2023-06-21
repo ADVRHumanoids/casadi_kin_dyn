@@ -1,2 +1,2 @@
 recursive-include casadi_kin_dyn/ *.so*
-include version
+include version.yml
