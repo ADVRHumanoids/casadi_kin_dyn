@@ -90,6 +90,8 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
                  make_deserialized(&CasadiKinDyn::potentialEnergy))
             .def("mass", &CasadiKinDyn::mass)
             .def("urdf", &CasadiKinDyn::urdf)
+            .def("velocityLimits", &CasadiKinDyn::velocityLimits)
+            .def("effortLimits", &CasadiKinDyn::effortLimits)
             ;
 
     py::enum_<CasadiKinDyn::ReferenceFrame>(casadikindyn, "ReferenceFrame")

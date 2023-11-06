@@ -81,6 +81,9 @@ public:
 
     casadi::Function potentialEnergy();
 
+    Eigen::VectorXd velocityLimits() const;
+    Eigen::VectorXd effortLimits() const;
+
     std::vector<double> q_min() const;
 
     std::vector<double> q_max() const;
