@@ -982,3 +982,5 @@ Eigen::VectorXd CasadiKinDyn::effortLimits() const
 {
     return impl().effortLimits();
 }
+
+}
