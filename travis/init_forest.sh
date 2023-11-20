@@ -5,6 +5,7 @@ cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for 
 # source setup.bash
 ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
 
+# moving the recipes manually defined so as to freeze this build configuration
 echo "moving build recipes to $PWD"
 mv ../casadi_kin_dyn/travis/recipes .
 

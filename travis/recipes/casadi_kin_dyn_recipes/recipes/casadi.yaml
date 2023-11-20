@@ -12,8 +12,6 @@ build:
     - -DWITH_OSQP=1
     - -DWITH_QPOASES=1
     - -DWITH_LAPACK=1
-    - -DWITH_THREAD=1
-    - -DWITH_IPOPT=1
     
 depends:
   - osqp
