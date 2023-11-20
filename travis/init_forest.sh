@@ -7,6 +7,7 @@ ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
 
 ls ../casadi_kin_dyn/travis/
 
+echo -e "moving build recipes to $PWD"
 cp -R ../casadi_kin_dyn/travis/recipes .
 
 # FOREST_TAG='master'
