@@ -2,7 +2,7 @@ clone:
   type: git
   server: github.com
   repository: casadi/casadi.git
-  tag: main
+  tag: 3.6.3 # should be the same as the pip version of casadi
   recursive: true
 
 
@@ -14,11 +14,7 @@ build:
     - -DWITH_LAPACK=1
     - -DWITH_THREAD=1
     - -DWITH_IPOPT=1
-    # for python bindings (swig required)
-    - -DWITH_PYTHON=1
-    - -DWITH_PYTHON3=1
-    - -DPYTHON_PREFIX={installdir}/lib/python3/dist-packages
-
+    
 depends:
   - osqp
   - ipopt
