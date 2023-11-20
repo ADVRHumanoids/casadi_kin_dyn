@@ -16,8 +16,8 @@ jobs:
     - dist: focal
       python: 3.10
       env: DISTRIBUTION="python"
-    - dist: bionic
-      env: DISTRIBUTION="python"
+    # - dist: bionic
+      # env: DISTRIBUTION="python"
     - dist: focal
       env: DISTRIBUTION="conda"
 
