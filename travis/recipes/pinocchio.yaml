@@ -1,0 +1,20 @@
+clone:
+  type: git
+  server: github.com
+  repository: stack-of-tasks/pinocchio.git
+  tag: master
+  recursive: true
+
+
+build:
+  type: cmake
+  args:
+    - -DBUILD_PYTHON_INTERFACE=OFF
+    - -DBUILD_PYTHON_INTERFACE=OFF
+    - -DBUILD_TESTING=OFF
+    - -DBUILD_UTILS=OFF
+    - -DBUILD_WITH_COLLISION_SUPPORT=ON
+
+depends:
+  - hpp-fcl
+

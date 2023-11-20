@@ -1,0 +1,16 @@
+clone:
+  type: git
+  server: github.com
+  repository: advrhumanoids/casadi_kin_dyn.git
+  tag: pypi
+
+build:
+  type: cmake
+  args_if:
+    "ubuntu_release >= 20.04": 
+      - -DPYBIND11_PYTHON_VERSION=3
+
+depends:
+  - pybind11
+  - pinocchio
+  - casadi

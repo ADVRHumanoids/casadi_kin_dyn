@@ -1,0 +1,13 @@
+clone:
+  type: git
+  server: github.com
+  repository: ADVRHumanoids/hpp-fcl.git
+  recursive: true
+  tag: witness_fix
+  
+build:
+  type: cmake
+  args:
+    - -DBUILD_PYTHON_INTERFACE=OFF
+    - -DBUILD_TESTING=OFF
+
