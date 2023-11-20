@@ -5,7 +5,7 @@ cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for 
 # source setup.bash
 ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
 
-ls .
+ls ..
 cp -R ../travis/recipes .
 
 # FOREST_TAG='master'
