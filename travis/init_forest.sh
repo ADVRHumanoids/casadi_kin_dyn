@@ -5,6 +5,7 @@ cd .. && mkdir forest_ws && cd forest_ws && forest init  # create forest ws for 
 # source setup.bash
 ln -s $SRC_FOLDER src/$(basename $SRC_FOLDER)  # symlink original source folder
 
+ls ~/ADVRHumanoids/casadi_kind_dyn
 cp -R ~/ADVRHumanoids/casadi_kind_dyn/travis/recipes .
 
 # FOREST_TAG='master'
