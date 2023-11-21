@@ -2,7 +2,7 @@ clone:
   type: git
   server: github.com
   repository: casadi/casadi.git
-  tag: 3.6.3 # should be the same as the pip version of casadi
+  tag: 3.6.4 # should be the same as the pip version of casadi
   recursive: true
 
 

@@ -7,7 +7,7 @@ cd $FOREST_DIR
 source setup.bash
 echo $CMAKE_PREFIX_PATH
 
-# required packages for building horizon
+# required packages for building casadi_kin_dyn
 FOREST_ARGS="--default-build-type Release --clone-protocol https --verbose -j2"
 
 forest grow casadi_kin_dyn $FOREST_ARGS
