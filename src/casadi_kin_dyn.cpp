@@ -206,7 +206,8 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToQ(std::map<std::string, double> jmap)
     {
         if(!_model_dbl.existJointName(jname))
         {
-            throw std::invalid_argument("joint does not exist (" + jname + ")");
+            std::cout << "\033[1;33m[WARNING]: \033[0m \033[33mjoint does not exist (" << jname << ")\033[0m" << std::endl;
+            continue;
         }
 
         size_t jidx = _model_dbl.getJointId(jname);
@@ -223,9 +224,6 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToQ(std::map<std::string, double> jmap)
         {
             joint_pos[qidx] = jpos;
         }
-
-
-
     }
 
     return joint_pos;
@@ -260,22 +258,24 @@ Eigen::VectorXd CasadiKinDyn::Impl::mapToV(std::map<std::string, double> jmap)
 
 Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 {
-
     // add guards if q input by user is not of dimension nq()
-    auto model = _model_dbl.cast<Scalar>();
     int reduced_size = 0;
 
-    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    for(int n_joint = 0; n_joint < _model_dbl.njoints; n_joint++)
     {
-        int nq = model.nqs[n_joint];
+        int nq = _model_dbl.nqs[n_joint];
 
-        if(nq==2)
+        if(nq == 2)
         {
             reduced_size++;
         }
+        else if (nq == 7)
+        {
+            reduced_size += 6;
+        }
         else
         {
-            reduced_size+=nq;
+            reduced_size += nq;
         }
     }
 
@@ -283,9 +283,9 @@ Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 
     int i = 0;
     int j = 0;
-    for(int n_joint = 0; n_joint < model.njoints; n_joint++)
+    for(int n_joint = 0; n_joint < _model_dbl.njoints; n_joint++)
     {
-        int nq = model.nqs[n_joint];
+        int nq = _model_dbl.nqs[n_joint];
 
         if(nq == 0)
         {
@@ -294,23 +294,23 @@ Eigen::VectorXd CasadiKinDyn::Impl::getMinimalQ(Eigen::VectorXd q)
 
         if(nq == 7)
         {
-            for (int k = 0; k < 7; k++)
-            {
-                q_minimal[j+k] = q[i+k];
-            }
-            j+=6;
+            Eigen::Quaterniond quat(q(6), q(3), q(4), q(5));
+            Eigen::Vector3d rpy = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+            q_minimal.segment(j, 6) << q(0), q(1), q(2), rpy;
+            j += 6;
         }
 
         if(nq == 1)
         {
             q_minimal[j] = q[i];
+            j++;
         }
 
         if(nq == 2)
         {
             q_minimal[j] = atan2(q[i], q[i+1]);
+            j++;
         }
-        j++;
         i+=nq;
     }
 
