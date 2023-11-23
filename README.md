@@ -2,10 +2,10 @@
 Package for generation of symbolic (SX) expressions of robot kinematics and dynamics. Based on URDF and Pinocchio.
 
 ## Dependencies
-- `casadi` built from source is highly recommended on ubuntu 16.04 and later (however, check with `pip show casadi`)
+- `casadi` built from source is mandatory
 - `pinocchio` latest devel branch (mandatory)
 - `pybind11` for generating python bindings
-- `urdfdom` (tested on ROS Kinetic)
+- `urdfdom` (tested on ROS Noetic)
 
 ## Usage (python)
 ``` python
