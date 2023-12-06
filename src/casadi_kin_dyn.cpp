@@ -134,13 +134,23 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
         size_t jidx = model_full.getJointId(jname);
         size_t qidx = model_full.idx_qs[jidx];
         size_t nq = model_full.nqs[jidx];
-        if(nq != 1)
-        {
-            throw std::invalid_argument("only 1-dof fixed joints are supported (" + jname + ")");
-        }
 
-        joints_to_lock.push_back(jidx);
-        joint_pos[qidx] = jpos;
+
+        if(nq == 1)
+        {
+            joints_to_lock.push_back(jidx);
+            joint_pos[qidx] = jpos;
+        }
+        else if(nq == 2)
+        {
+            joints_to_lock.push_back(jidx);
+            joint_pos[qidx] = cos(jpos);
+            joint_pos[qidx+1] = sin(jpos);
+        }
+        else
+        {
+            throw std::invalid_argument("only 1-dof and 2-dof fixed joints are supported (" + jname + ")");
+        }
 
     }
 
