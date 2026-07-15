@@ -13,6 +13,8 @@
 
 #include <math.h>
 
+#include <casadi_kin_dyn/casadi_collision_handler.h>
+
 #ifndef casadi_real
 #define casadi_real double
 #endif
@@ -41,8 +43,6 @@
 #define CASADI_SYMBOL_EXPORT
 #endif
 #endif
-
-#include <casadi_kin_dyn/casadi_collision_handler.h>
 
 namespace casadi_kin_dyn
 {

@@ -54,7 +54,7 @@ public:
               Eigen::Ref<const Eigen::VectorXd> v,
               Eigen::Ref<Eigen::VectorXd> qdot);
 
-    casadi::Function rnea(const bool sym_g = false);
+    casadi::Function rnea(const std::vector<std::string> contact_frames = {}, const bool sym_g = false);
 
     casadi::Function computeCentroidalDynamics();
 
@@ -107,7 +107,7 @@ private:
     static casadi::SX eigmat_to_cas(const MatrixXs& eig);
 
     pinocchio::Model _model_dbl;
-    casadi::SX _q, _qdot, _qddot, _tau, _g;
+    casadi::SX _q, _qdot, _qddot, _tau, _fext, _g;
     std::vector<double> _q_min, _q_max;
     urdf::ModelInterfaceSharedPtr _urdf;
 
@@ -163,6 +163,7 @@ CasadiKinDyn::Impl::Impl(urdf::ModelInterfaceSharedPtr urdf_model,
     _qdot = casadi::SX::sym("v", _model_dbl.nv);
     _qddot = casadi::SX::sym("a", _model_dbl.nv);
     _tau = casadi::SX::sym("tau", _model_dbl.nv);
+    _fext = casadi::SX::sym("fext", 6 * _model_dbl.njoints);
     _g = casadi::SX::sym("g", 3);
 
     _q_min.resize(_model_dbl.lowerPositionLimit.size());
@@ -570,7 +571,7 @@ std::string CasadiKinDyn::Impl::childLink(const std::string &jname) const
     return _urdf->getJoint(jname)->child_link_name;
 }
 
-casadi::Function CasadiKinDyn::Impl::rnea(const bool sym_g)
+casadi::Function CasadiKinDyn::Impl::rnea(const std::vector<std::string> contact_frames, const bool sym_g)
 {
     auto model = _model_dbl.cast<Scalar>();
     pinocchio::DataTpl<Scalar> data(model);
@@ -578,18 +579,35 @@ casadi::Function CasadiKinDyn::Impl::rnea(const bool sym_g)
     std::vector<casadi::SX> args {_q, _qdot, _qddot};
     std::vector<std::string> args_name {"q", "v", "a"};
 
+    casadi::SX tau_ext = casadi::SX::zeros(_model_dbl.nv);
+
     if (sym_g)
     {
         model.gravity.linear() = cas_to_eig(_g);
         args_name.push_back("g");
         args.push_back(_g);
     }
+    for (const auto& frame : contact_frames)
+    {
+        // if (!model.existJointName(frame))
+        // {
+        //     throw std::invalid_argument("link '" + frame + "' undefined");
+        // }
 
+        std::string c_name = "c_" + frame;
+        casadi::SX c = casadi::SX::sym(c_name, 6);
+
+        casadi::Function J_fun = jacobian(frame, ReferenceFrame::LOCAL_WORLD_ALIGNED);
+        casadi::SX J = J_fun(std::vector<casadi::SX>{_q}).at(0);
+        tau_ext += casadi::SX::mtimes(J.T(), c);
+
+        args_name.push_back(c_name);
+        args.push_back(c);
+    }
 
     pinocchio::rnea(model, data, cas_to_eig(_q), cas_to_eig(_qdot), cas_to_eig(_qddot));
+    auto tau = eig_to_cas(data.tau) - tau_ext;
 
-
-    auto tau = eig_to_cas(data.tau);
     casadi::Function ID("rnea",
                         args, {tau},
                         args_name, {"tau"});
@@ -886,9 +904,9 @@ void CasadiKinDyn::qdot(Eigen::Ref<const Eigen::VectorXd> q,
     return impl().qdot(q, v, qdot);
 }
 
-casadi::Function CasadiKinDyn::rnea(const bool sym_g)
+casadi::Function CasadiKinDyn::rnea(const std::vector<std::string> contact_frames, const bool sym_g)
 {
-    return impl().rnea(sym_g);
+    return impl().rnea(contact_frames, sym_g);
 }
 
 casadi::Function CasadiKinDyn::computeCentroidalDynamics()

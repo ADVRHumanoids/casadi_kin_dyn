@@ -61,7 +61,9 @@ PYBIND11_MODULE(CASADI_KIN_DYN_MODULE, m) {
             .def("parentLink", &CasadiKinDyn::parentLink)
             .def("joint_names", &CasadiKinDyn::joint_names)
             .def("rnea",
-                 make_deserialized(&CasadiKinDyn::rnea), py::arg("sym_g") = false)
+                 make_deserialized(&CasadiKinDyn::rnea),
+                 py::arg("contact_frames") = std::vector<std::string>{},
+                 py::arg("sym_g") = false)
             .def("qdot",
                  make_deserialized(&CasadiKinDyn::qdot))
             .def("integrate",

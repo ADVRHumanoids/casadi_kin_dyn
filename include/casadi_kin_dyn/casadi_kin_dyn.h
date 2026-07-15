@@ -57,7 +57,7 @@ public:
               Eigen::Ref<const Eigen::VectorXd> v,
               Eigen::Ref<Eigen::VectorXd> qdot);
 
-    casadi::Function rnea(const bool sym_g);
+    casadi::Function rnea(const std::vector<std::string> contact_frames = {}, const bool sym_g = false);
 
     casadi::Function computeCentroidalDynamics();
 
